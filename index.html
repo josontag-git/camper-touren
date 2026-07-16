@@ -35,8 +35,6 @@
     </header>
 
     <main id="view-root">
-      <!-- Milestone 1: Grundgerüst nur. Ab Milestone 2 (Google-Login) und
-           Milestone 3 (Sheets-CRUD) wird hier die Trip-Übersicht gerendert. -->
       <section id="offline-banner" class="banner hidden" role="status">
         Offline – es werden zuletzt geladene Daten angezeigt.
       </section>
@@ -45,10 +43,11 @@
         <p id="empty-state-text">Bitte zuerst mit Google anmelden.</p>
       </section>
 
-      <section id="sheet-test" class="sheet-test hidden">
-        <h2>Sheet-Verbindungstest</h2>
-        <p class="muted">Kopfzeilen, wie sie gerade aus dem Google Sheet gelesen wurden:</p>
-        <pre id="sheet-test-output"></pre>
+      <section id="trips-view" class="trips-view hidden">
+        <div class="trips-toolbar">
+          <button id="add-trip-btn" class="btn btn-primary">+ Neuer Urlaub</button>
+        </div>
+        <ul id="trips-list" class="trips-list"></ul>
       </section>
     </main>
 
