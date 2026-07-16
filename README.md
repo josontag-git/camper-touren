@@ -55,9 +55,10 @@ Console eingetragen sein, sonst schlägt der Login mit einem Origin-Fehler fehl.
 
 ## Konfiguration (`js/config.js`)
 
-`js/config.js` ist per `.gitignore` ausgeschlossen (enthält Client-ID/Keys für
-dieses Projekt) und muss lokal aus `js/config.example.js` erstellt werden.
-Siehe Kommentar in der Beispieldatei für Details zu den einzutragenden Werten.
+`js/config.js` wird aus `js/config.example.js` erstellt und **mit committed**
+(keine Secrets, nur client-seitige IDs/Keys – siehe Kommentar in der
+Beispieldatei). Ohne diese Datei schlägt der Modul-Import fehl und die
+gesamte App bleibt funktionslos, auch auf GitHub Pages.
 
 ## Hosting (GitHub Pages)
 

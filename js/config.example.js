@@ -1,5 +1,5 @@
-// Kopiere diese Datei zu "config.js" (wird per .gitignore ausgeschlossen) und
-// trage dort die eigenen, öffentlichen Client-IDs/Keys ein.
+// Kopiere diese Datei zu "config.js" und trage dort die eigenen, öffentlichen
+// Client-IDs/Keys ein. "config.js" wird mit committed/deployed (siehe unten).
 //
 // WICHTIG: Das hier sind Client-seitige Werte (OAuth Client-ID, Maps API-Key),
 // KEIN Secret. Der Maps-API-Key MUSS per HTTP-Referrer-Beschränkung in der
