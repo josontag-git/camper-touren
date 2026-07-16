@@ -4,6 +4,7 @@
 import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
 import { CATEGORIES, UNCATEGORIZED, categoryInfo, ALL_CATEGORY_IDS, renderCategoryFilterChips } from "./categories.js";
+import { loadMapsApi } from "./maps-loader.js";
 
 let onStatus = () => {};
 let editingPlaceId = null; // null = nichts, "new" = neuer Ort, sonst place.id
@@ -82,6 +83,27 @@ function createViewRow(place) {
   return li;
 }
 
+// Bindet Google-Places-Autocomplete an nameField: Auswahl eines Vorschlags
+// füllt Adresse + Koordinaten automatisch (kein manuelles Koordinaten-Tippen
+// mehr nötig, das war fehleranfällig). Ohne Maps-Key bleibt es ein normales
+// Textfeld – kein Fehler, nur kein Autocomplete.
+function attachPlacesAutocomplete(nameField, addressField, latField, lngField) {
+  loadMapsApi().then((maps) => {
+    const autocomplete = new maps.places.Autocomplete(nameField, {
+      fields: ["name", "formatted_address", "geometry"],
+    });
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (place.name) nameField.value = place.name;
+      if (place.formatted_address) addressField.value = place.formatted_address;
+      if (place.geometry?.location) {
+        latField.value = place.geometry.location.lat();
+        lngField.value = place.geometry.location.lng();
+      }
+    });
+  }).catch(() => { /* kein Maps-Key -> normales Textfeld ohne Autocomplete */ });
+}
+
 function createFormRow(place) {
   const isNew = !place;
   const li = document.createElement("li");
@@ -91,7 +113,7 @@ function createFormRow(place) {
 
   const nameField = document.createElement("input");
   nameField.type = "text";
-  nameField.placeholder = "Name des Orts";
+  nameField.placeholder = "Name des Orts (Google-Suche)";
   nameField.value = place?.name || prefill?.name || "";
 
   const categoryField = document.createElement("select");
@@ -131,6 +153,8 @@ function createFormRow(place) {
   lngField.step = "any";
   lngField.placeholder = "Längengrad (optional)";
   lngField.value = place?.lng ?? "";
+
+  attachPlacesAutocomplete(nameField, addressField, latField, lngField);
 
   const noteField = document.createElement("input");
   noteField.type = "text";

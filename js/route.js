@@ -2,11 +2,10 @@
 // Kategorie eingefärbt, per Filter-Chips ein-/ausblendbar) + Absprung nach
 // Google Maps (einzelner Ort oder gesamte Route als Wegpunkte).
 
-import { CONFIG } from "./config.js";
 import { getState, subscribe, toggleCategoryFilter, isCategoryVisible } from "./state.js";
 import { categoryInfo, ALL_CATEGORY_IDS, renderCategoryFilterChips } from "./categories.js";
+import { loadMapsApi } from "./maps-loader.js";
 
-let mapsLoadPromise = null;
 let map = null;
 let markers = [];
 
@@ -20,22 +19,6 @@ function visiblePlaces() {
 
 function hasCoords(place) {
   return place.lat !== "" && place.lat != null && place.lng !== "" && place.lng != null && !Number.isNaN(Number(place.lat));
-}
-
-function loadMapsApi() {
-  if (mapsLoadPromise) return mapsLoadPromise;
-  if (!CONFIG.GOOGLE_MAPS_API_KEY || CONFIG.GOOGLE_MAPS_API_KEY === "REPLACE_ME") {
-    return Promise.reject(new Error("Kein Google-Maps-API-Key in js/config.js hinterlegt."));
-  }
-  mapsLoadPromise = new Promise((resolve, reject) => {
-    window.__campingAppMapsReady = () => resolve(window.google.maps);
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${CONFIG.GOOGLE_MAPS_API_KEY}&callback=__campingAppMapsReady&loading=async`;
-    script.async = true;
-    script.onerror = () => reject(new Error("Google-Maps-API konnte nicht geladen werden."));
-    document.head.appendChild(script);
-  });
-  return mapsLoadPromise;
 }
 
 function placeMapsUrl(place) {
