@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Camper Touren</title>
+  <meta name="description" content="Private Camper-Urlaubsplanung: Orte, Tage, Routen." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#3a424a" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <!-- TODO Milestone 8: echtes apple-touch-icon.png (180x180) aus dem finalen
+       App-Icon erzeugen, sobald die Bilddatei im Projektordner liegt. iOS
+       unterstützt kein SVG als Home-Screen-Icon. -->
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Camper Touren" />
+
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <h1>Camper Touren</h1>
+      <div id="auth-area">
+        <button id="login-btn" class="btn btn-primary">Mit Google anmelden</button>
+        <div id="user-chip" class="user-chip hidden">
+          <span id="user-email"></span>
+          <button id="logout-btn" class="btn btn-ghost">Abmelden</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="view-root">
+      <!-- Milestone 1: Grundgerüst nur. Ab Milestone 2 (Google-Login) und
+           Milestone 3 (Sheets-CRUD) wird hier die Trip-Übersicht gerendert. -->
+      <section id="offline-banner" class="banner hidden" role="status">
+        Offline – es werden zuletzt geladene Daten angezeigt.
+      </section>
+
+      <section id="empty-state" class="empty-state">
+        <p id="empty-state-text">Bitte zuerst mit Google anmelden.</p>
+      </section>
+
+      <section id="sheet-test" class="sheet-test hidden">
+        <h2>Sheet-Verbindungstest</h2>
+        <p class="muted">Kopfzeilen, wie sie gerade aus dem Google Sheet gelesen wurden:</p>
+        <pre id="sheet-test-output"></pre>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Hauptnavigation">
+      <button class="nav-item is-active" data-view="trips">Urlaube</button>
+      <button class="nav-item" data-view="map">Karte</button>
+      <button class="nav-item" data-view="settings">Einstellungen</button>
+    </nav>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

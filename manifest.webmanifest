@@ -1,0 +1,15 @@
+{
+  "name": "Camper Touren",
+  "short_name": "Camper Touren",
+  "description": "Private Camper-Urlaubsplanung: Orte, Tage, Routen.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#3a424a",
+  "theme_color": "#3a424a",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
