@@ -9,14 +9,31 @@
 
 import { getScriptUrl } from "./settings.js";
 
+const STORAGE_DATA_CACHE = "campingAppDataCache";
+
 let cache = null;
+let lastLoadWasOffline = false;
+
+export function wasLastLoadOffline() {
+  return lastLoadWasOffline;
+}
 
 async function fetchAll() {
   const url = getScriptUrl();
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Apps-Script-Antwort ${res.status}`);
-  cache = await res.json();
-  return cache;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Apps-Script-Antwort ${res.status}`);
+    cache = await res.json();
+    lastLoadWasOffline = false;
+    localStorage.setItem(STORAGE_DATA_CACHE, JSON.stringify(cache));
+    return cache;
+  } catch (err) {
+    const cached = localStorage.getItem(STORAGE_DATA_CACHE);
+    if (!cached) throw err;
+    cache = JSON.parse(cached);
+    lastLoadWasOffline = true;
+    return cache;
+  }
 }
 
 async function postAction(entity, action, data) {

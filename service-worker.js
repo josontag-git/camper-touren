@@ -1,9 +1,7 @@
-// Service-Worker-Skelett – Milestone 1.
-// Caching-Strategie für Trip-/Places-Daten (IndexedDB) folgt in Milestone 7.
-// Hier zunächst nur: App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start
-// und Installierbarkeit.
+// App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start und Installierbarkeit.
+// Trip-/Places-Daten selbst werden separat in localStorage gecacht (js/api.js).
 
-const CACHE_VERSION = "app-shell-v4";
+const CACHE_VERSION = "app-shell-v5";
 
 const APP_SHELL = [
   "./",

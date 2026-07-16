@@ -4,7 +4,7 @@
 // Gemini-Key, Farbschema).
 
 import { registerServiceWorker } from "./sw-register.js";
-import { getTrips, getPlaces } from "./api.js";
+import { getTrips, getPlaces, wasLastLoadOffline } from "./api.js";
 import { getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey } from "./settings.js";
 import { getColorTheme, setColorTheme, applyColorTheme, THEMES } from "./theme.js";
 import { getState, subscribe, setTrips, setPlaces } from "./state.js";
@@ -60,7 +60,7 @@ async function loadTrips() {
   try {
     const trips = await getTrips();
     setTrips(trips);
-    setStatus("");
+    setStatus(wasLastLoadOffline() ? "Offline – zeige zuletzt gespeicherten Stand." : "");
     if (trips.length === 0) openNewTripForm();
   } catch (err) {
     setStatus(err.message);
@@ -104,8 +104,7 @@ function init() {
   initPlan(setStatus);
   initRoute();
   initInspire((fields) => {
-    addPlaceFromSuggestion(fields);
-    switchView("plan-view");
+    if (addPlaceFromSuggestion(fields)) switchView("plan-view");
   });
   registerServiceWorker();
 

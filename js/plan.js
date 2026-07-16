@@ -8,6 +8,7 @@ const CATEGORIES = ["Campingplatz", "Sehenswürdigkeit", "Restaurant", "Aktivit�
 let onStatus = () => {};
 let editingPlaceId = null; // null = nichts, "new" = neuer Ort, sonst place.id
 let dragSourceId = null;
+let prefillFields = null; // einmalige Vorbelegung, z. B. aus einem Inspire-Vorschlag
 
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
@@ -71,10 +72,12 @@ function createFormRow(place) {
   const li = document.createElement("li");
   li.className = "trip-item trip-item-editing";
 
+  const prefill = !place && prefillFields ? prefillFields : null;
+
   const nameField = document.createElement("input");
   nameField.type = "text";
   nameField.placeholder = "Name des Orts";
-  nameField.value = place?.name || "";
+  nameField.value = place?.name || prefill?.name || "";
 
   const categoryField = document.createElement("select");
   const blankOpt = document.createElement("option");
@@ -117,7 +120,9 @@ function createFormRow(place) {
   const noteField = document.createElement("input");
   noteField.type = "text";
   noteField.placeholder = "Notiz";
-  noteField.value = place?.note || "";
+  noteField.value = place?.note || prefill?.note || "";
+
+  if (prefill) prefillFields = null; // einmalig verwenden
 
   const fieldsWrap = document.createElement("div");
   fieldsWrap.className = "trip-edit-fields";
@@ -216,11 +221,14 @@ async function onReorder(sourceId, targetId) {
 
 export function addPlaceFromSuggestion(fields) {
   const { currentTripId } = getState();
-  if (!currentTripId) return;
+  if (!currentTripId) {
+    onStatus("Bitte zuerst einen Urlaub auswählen oder anlegen.");
+    return false;
+  }
+  prefillFields = fields;
   editingPlaceId = "new";
   render();
-  const nameField = document.querySelector("#places-list .trip-item-editing input[type=text]");
-  if (nameField) nameField.value = fields.name || "";
+  return true;
 }
 
 function render() {

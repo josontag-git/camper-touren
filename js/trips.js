@@ -1,7 +1,7 @@
 // Trip-Leiste (Auswahl/Anlegen/Bearbeiten/Löschen des aktuellen Urlaubs).
 
-import { createTrip, updateTrip, deleteTrip } from "./api.js";
-import { getState, subscribe, setTrips, setCurrentTripId } from "./state.js";
+import { createTrip, updateTrip, deleteTrip, deletePlace } from "./api.js";
+import { getState, subscribe, setTrips, setPlaces, setCurrentTripId } from "./state.js";
 
 const NEW_TRIP_VALUE = "__new__";
 
@@ -143,12 +143,16 @@ async function onSaveTrip(existingTrip, fields, saveBtn) {
 }
 
 async function onDeleteTrip() {
-  const { currentTrip } = getState();
+  const { currentTrip, places } = getState();
   if (!currentTrip) return;
-  if (!window.confirm(`"${currentTrip.name || "Urlaub"}" wirklich löschen? Zugehörige Orte bleiben im Sheet erhalten.`)) return;
+  const placeCount = places.length;
+  const warning = placeCount > 0 ? ` (inkl. ${placeCount} Ort${placeCount === 1 ? "" : "e"} im Plan)` : "";
+  if (!window.confirm(`"${currentTrip.name || "Urlaub"}"${warning} wirklich löschen?`)) return;
   try {
+    await Promise.all(places.map((p) => deletePlace(p.id)));
     await deleteTrip(currentTrip.id);
     const { trips } = getState();
+    setPlaces([]);
     setTrips(trips.filter((t) => t.id !== currentTrip.id));
   } catch (err) {
     onStatus(`Fehler beim Löschen: ${err.message}`);

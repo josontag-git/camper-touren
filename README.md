@@ -29,9 +29,14 @@ Dateien:
   (sonst wandelt Sheets zahlen-/datumsähnliche Werte wie Koordinaten automatisch um)
 - `icons/` – App-Icon-Set
 
-Noch NICHT enthalten: IndexedDB-Offline-Cache für Trip-Daten, echte
-Places-Autocomplete/-Suche (Inspire liefert Textvorschläge, keine strukturierten
-Google-Places-Ergebnisse mit garantierten Koordinaten).
+Trip-/Places-Daten werden nach jedem erfolgreichen Laden in `localStorage`
+gecacht (`js/api.js`) – offline zeigt die App den zuletzt geladenen Stand
+statt nur einen Fehler. Beim Löschen eines Urlaubs werden dessen Orte
+automatisch mitgelöscht (kein manuelles Aufräumen nötig).
+
+Noch NICHT enthalten: echte Places-Autocomplete/-Suche (Inspire liefert
+Gemini-Textvorschläge, keine strukturierten Google-Places-Ergebnisse mit
+garantierten Koordinaten).
 
 ## Technische Entscheidung: Apps Script statt Google-Cloud-OAuth
 
@@ -154,8 +159,7 @@ Wird beim ersten Zugriff automatisch angelegt, falls die Tabs noch fehlen:
 - `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt`
 - `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt`
 
-## Nächster Schritt (Milestone 5)
+## Mögliche nächste Schritte
 
-IndexedDB-Offline-Cache für Trip-/Places-Daten, echte Google-Places-Suche
-(strukturierte Ergebnisse mit garantierten Koordinaten statt Gemini-Textliste)
-als Ergänzung zu Inspire.
+Echte Google-Places-Suche (strukturierte Ergebnisse mit garantierten
+Koordinaten statt Gemini-Textliste) als Ergänzung zu Inspire.
