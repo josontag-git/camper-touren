@@ -1,22 +1,29 @@
-// Plan-Ansicht: Orte des aktuellen Urlaubs anlegen/bearbeiten/löschen/sortieren.
+// Plan-Ansicht: Orte des aktuellen Urlaubs anlegen/bearbeiten/löschen/sortieren,
+// gruppiert (geclustert) nach Kategorie mit Filter-Chips.
 
 import { createPlace, updatePlace, deletePlace } from "./api.js";
-import { getState, subscribe, setPlaces } from "./state.js";
-
-const CATEGORIES = ["Campingplatz", "Sehenswürdigkeit", "Restaurant", "Aktivität", "Sonstiges"];
+import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
+import { CATEGORIES, UNCATEGORIZED, categoryInfo, ALL_CATEGORY_IDS, renderCategoryFilterChips } from "./categories.js";
 
 let onStatus = () => {};
 let editingPlaceId = null; // null = nichts, "new" = neuer Ort, sonst place.id
-let dragSourceId = null;
+let dragSource = null; // { id, category }
 let prefillFields = null; // einmalige Vorbelegung, z. B. aus einem Inspire-Vorschlag
 
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 }
 
+function groupedPlaces() {
+  const all = sortedPlaces();
+  return [...CATEGORIES, UNCATEGORIZED].map((cat) => ({
+    ...cat,
+    places: all.filter((p) => (p.category || "") === cat.id),
+  }));
+}
+
 function formatMeta(place) {
   const parts = [];
-  if (place.category) parts.push(place.category);
   if (place.arrivalDate) parts.push(place.departureDate ? `${place.arrivalDate} – ${place.departureDate}` : place.arrivalDate);
   if (place.address) parts.push(place.address);
   return parts.join(" · ") || "Keine Details";
@@ -27,13 +34,21 @@ function createViewRow(place) {
   li.className = "trip-item place-item";
   li.draggable = true;
   li.dataset.id = place.id;
+  li.style.setProperty("--category-color", categoryInfo(place.category).color);
 
-  li.addEventListener("dragstart", () => { dragSourceId = place.id; li.classList.add("dragging"); });
-  li.addEventListener("dragend", () => { li.classList.remove("dragging"); });
-  li.addEventListener("dragover", (e) => e.preventDefault());
+  li.addEventListener("dragstart", () => {
+    dragSource = { id: place.id, category: place.category || "" };
+    li.classList.add("dragging");
+  });
+  li.addEventListener("dragend", () => { li.classList.remove("dragging"); dragSource = null; });
+  li.addEventListener("dragover", (e) => {
+    if (dragSource && dragSource.category === (place.category || "")) e.preventDefault();
+  });
   li.addEventListener("drop", (e) => {
     e.preventDefault();
-    if (dragSourceId && dragSourceId !== place.id) onReorder(dragSourceId, place.id);
+    if (dragSource && dragSource.id !== place.id && dragSource.category === (place.category || "")) {
+      onReorder(dragSource.id, place.id);
+    }
   });
 
   const handle = document.createElement("span");
@@ -86,9 +101,9 @@ function createFormRow(place) {
   categoryField.appendChild(blankOpt);
   CATEGORIES.forEach((cat) => {
     const opt = document.createElement("option");
-    opt.value = cat;
-    opt.textContent = cat;
-    if (place?.category === cat) opt.selected = true;
+    opt.value = cat.id;
+    opt.textContent = cat.label;
+    if (place?.category === cat.id) opt.selected = true;
     categoryField.appendChild(opt);
   });
 
@@ -232,8 +247,10 @@ export function addPlaceFromSuggestion(fields) {
 }
 
 function render() {
-  const { currentTrip } = getState();
+  const { currentTrip, places } = getState();
+  const filtersEl = document.getElementById("place-category-filters");
   const list = document.getElementById("places-list");
+  filtersEl.innerHTML = "";
   list.innerHTML = "";
 
   if (!currentTrip) {
@@ -243,13 +260,36 @@ function render() {
   }
   document.getElementById("add-place-btn").disabled = false;
 
-  const places = sortedPlaces();
-  places.forEach((place) => {
-    list.appendChild(place.id === editingPlaceId ? createFormRow(place) : createViewRow(place));
-  });
-  if (editingPlaceId === "new") list.appendChild(createFormRow(null));
+  if (places.length > 0) {
+    renderCategoryFilterChips(filtersEl, isCategoryVisible, (catId) => {
+      toggleCategoryFilter(ALL_CATEGORY_IDS, catId);
+      render();
+    });
+  }
 
-  document.getElementById("plan-empty").classList.toggle("hidden", places.length > 0 || editingPlaceId === "new");
+  if (editingPlaceId === "new") {
+    const newGroup = document.createElement("li");
+    newGroup.appendChild(createFormRow(null));
+    list.appendChild(newGroup);
+  }
+
+  let visibleCount = 0;
+  groupedPlaces().forEach((group) => {
+    if (group.places.length === 0 || !isCategoryVisible(group.id)) return;
+    visibleCount += group.places.length;
+
+    const heading = document.createElement("li");
+    heading.className = "place-group-heading";
+    heading.style.setProperty("--category-color", group.color);
+    heading.textContent = `${group.label} (${group.places.length})`;
+    list.appendChild(heading);
+
+    group.places.forEach((place) => {
+      list.appendChild(place.id === editingPlaceId ? createFormRow(place) : createViewRow(place));
+    });
+  });
+
+  document.getElementById("plan-empty").classList.toggle("hidden", visibleCount > 0 || editingPlaceId === "new");
 }
 
 export function initPlan(statusCallback) {

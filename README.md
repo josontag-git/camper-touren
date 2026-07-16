@@ -9,19 +9,27 @@ gewählten Urlaub gibt es drei Bereiche plus Einstellungen (Bottom-Nav):
 
 - **Inspire** – Ortsvorschläge per Gemini (Google-Search-Grounding). Braucht
   einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Suche.
-- **Plan** – Orte anlegen/bearbeiten/löschen, per Drag&Drop sortierbar
-  (Reihenfolge wird im Sheet gespeichert), mit Kategorie/Daten/Adresse/Koordinaten.
-- **Route** – Karte (Google Maps JavaScript API) mit den Orten, die Koordinaten
-  haben, plus Absprung einzelner Orte oder der gesamten Route nach Google Maps.
+- **Plan** – Orte anlegen/bearbeiten/löschen, nach Kategorie gruppiert
+  (Camping/Sport/Sightseeing/Restaurant/Sonstiges/Ohne Kategorie) mit
+  Filter-Chips zum Ein-/Ausblenden, per Drag&Drop innerhalb einer Kategorie
+  sortierbar (Reihenfolge wird im Sheet gespeichert).
+- **Route** – Karte (Google Maps JavaScript API) mit den Orten, die
+  Koordinaten haben – Marker nach Kategorie eingefärbt, gleiche Filter-Chips
+  wie in Plan –, plus Absprung einzelner Orte oder der gesamten Route nach
+  Google Maps.
 - **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema.
+
+Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt Urlaube/Orte neu.
 
 Dateien:
 - `index.html`, `css/style.css`, `manifest.webmanifest`, `service-worker.js`
 - `js/main.js` – Bootstrap, View-Umschaltung, Einstellungen
-- `js/state.js` – kleiner Pub/Sub-Store (aktueller Urlaub + seine Orte)
+- `js/state.js` – kleiner Pub/Sub-Store (aktueller Urlaub, seine Orte, Kategorie-Filter)
 - `js/settings.js` – localStorage-Einstellungen (Apps-Script-URL, Gemini-Key)
 - `js/theme.js` – Farbschema-Verwaltung
+- `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Filter-Chip-Rendering
 - `js/trips.js`, `js/plan.js`, `js/route.js`, `js/inspire.js` – die vier Bereiche
+- `js/pull-to-refresh.js` – Pull-to-Refresh-Geste
 - `js/api.js` – Client für die Google-Apps-Script-Web-App (Trips/Places CRUD)
 - `apps-script/Code.gs` – Code für Google Apps Script (wird manuell ins Google
   Sheet eingefügt, nicht automatisch deployt), legt die Tabs "Trips"/"Places"

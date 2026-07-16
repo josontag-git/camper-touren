@@ -1,8 +1,10 @@
-// Route-Ansicht: Karte mit den Orten des aktuellen Urlaubs + Absprung nach
+// Route-Ansicht: Karte mit den Orten des aktuellen Urlaubs (Marker nach
+// Kategorie eingefärbt, per Filter-Chips ein-/ausblendbar) + Absprung nach
 // Google Maps (einzelner Ort oder gesamte Route als Wegpunkte).
 
 import { CONFIG } from "./config.js";
-import { getState, subscribe } from "./state.js";
+import { getState, subscribe, toggleCategoryFilter, isCategoryVisible } from "./state.js";
+import { categoryInfo, ALL_CATEGORY_IDS, renderCategoryFilterChips } from "./categories.js";
 
 let mapsLoadPromise = null;
 let map = null;
@@ -10,6 +12,10 @@ let markers = [];
 
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+}
+
+function visiblePlaces() {
+  return sortedPlaces().filter((p) => isCategoryVisible(p.category || ""));
 }
 
 function hasCoords(place) {
@@ -53,6 +59,17 @@ function fullRouteMapsUrl(places) {
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
+function markerIcon(maps, color) {
+  return {
+    path: maps.SymbolPath.CIRCLE,
+    fillColor: color,
+    fillOpacity: 1,
+    strokeColor: "#fff",
+    strokeWeight: 2,
+    scale: 9,
+  };
+}
+
 async function renderMap(places) {
   const mapEl = document.getElementById("route-map");
   const withCoords = places.filter(hasCoords);
@@ -72,7 +89,8 @@ async function renderMap(places) {
     markers = withCoords.map((p, i) => new maps.Marker({
       position: { lat: Number(p.lat), lng: Number(p.lng) },
       map,
-      label: String(i + 1),
+      label: { text: String(i + 1), color: "#fff", fontSize: "11px", fontWeight: "600" },
+      icon: markerIcon(maps, categoryInfo(p.category).color),
       title: p.name,
     }));
     const bounds = new maps.LatLngBounds();
@@ -91,6 +109,10 @@ function renderList(places) {
   places.forEach((place, i) => {
     const li = document.createElement("li");
     li.className = "trip-item";
+    li.style.setProperty("--category-color", categoryInfo(place.category).color);
+
+    const dot = document.createElement("span");
+    dot.className = "route-category-dot";
 
     const info = document.createElement("div");
     info.className = "trip-info";
@@ -109,15 +131,17 @@ function renderList(places) {
     link.rel = "noopener";
     link.textContent = "Maps ↗";
 
-    li.append(info, link);
+    li.append(dot, info, link);
     list.appendChild(li);
   });
 }
 
 function render() {
-  const { currentTrip } = getState();
+  const { currentTrip, places } = getState();
   const emptyEl = document.getElementById("route-empty");
   const fullRouteBtn = document.getElementById("open-full-route-btn");
+  const filtersEl = document.getElementById("route-category-filters");
+  filtersEl.innerHTML = "";
 
   if (!currentTrip) {
     emptyEl.classList.remove("hidden");
@@ -128,7 +152,6 @@ function render() {
     return;
   }
 
-  const places = sortedPlaces();
   if (places.length === 0) {
     emptyEl.classList.remove("hidden");
     emptyEl.textContent = "Noch keine Orte im Plan – füge welche im Bereich \"Plan\" hinzu.";
@@ -138,11 +161,26 @@ function render() {
     return;
   }
 
-  emptyEl.classList.add("hidden");
-  renderMap(places);
-  renderList(places);
+  renderCategoryFilterChips(filtersEl, isCategoryVisible, (catId) => {
+    toggleCategoryFilter(ALL_CATEGORY_IDS, catId);
+    render();
+  });
 
-  const routeUrl = fullRouteMapsUrl(places);
+  const shown = visiblePlaces();
+  if (shown.length === 0) {
+    emptyEl.classList.remove("hidden");
+    emptyEl.textContent = "Alle Kategorien ausgeblendet – oben wieder einblenden.";
+    document.getElementById("route-map").classList.add("hidden");
+    document.getElementById("route-list").innerHTML = "";
+    fullRouteBtn.classList.add("hidden");
+    return;
+  }
+
+  emptyEl.classList.add("hidden");
+  renderMap(shown);
+  renderList(shown);
+
+  const routeUrl = fullRouteMapsUrl(shown);
   fullRouteBtn.classList.toggle("hidden", !routeUrl);
   fullRouteBtn.onclick = () => routeUrl && window.open(routeUrl, "_blank", "noopener");
 }

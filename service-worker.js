@@ -1,7 +1,7 @@
 // App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start und Installierbarkeit.
 // Trip-/Places-Daten selbst werden separat in localStorage gecacht (js/api.js).
 
-const CACHE_VERSION = "app-shell-v5";
+const CACHE_VERSION = "app-shell-v7";
 
 const APP_SHELL = [
   "./",
@@ -12,10 +12,12 @@ const APP_SHELL = [
   "./js/state.js",
   "./js/settings.js",
   "./js/theme.js",
+  "./js/categories.js",
   "./js/trips.js",
   "./js/plan.js",
   "./js/route.js",
   "./js/inspire.js",
+  "./js/pull-to-refresh.js",
   "./js/sw-register.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
@@ -47,9 +49,9 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Cache-first für die App-Shell. Google-API-Aufrufe (Sheets/Places/Maps/Directions)
-// werden bewusst NICHT hier abgefangen – die laufen live bzw. werden ab Milestone 7
-// über IndexedDB im Anwendungscode gecacht, nicht über den Service Worker.
+// Cache-first für die App-Shell. Google-API-Aufrufe (Sheets/Places/Maps/Directions/
+// Apps Script) werden bewusst NICHT hier abgefangen – die laufen live; Trip-/
+// Places-Daten werden separat in localStorage gecacht (js/api.js).
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   const isGoogleApi =

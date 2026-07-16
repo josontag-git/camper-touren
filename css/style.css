@@ -53,6 +53,18 @@ html, body {
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
+.pull-refresh-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 0;
+  overflow: hidden;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  transition: height 0.15s ease-out;
+  margin: -16px -16px 0;
+}
+
 .btn {
   border: none;
   border-radius: var(--radius);
@@ -269,6 +281,7 @@ html, body {
 
 .place-item {
   cursor: grab;
+  border-left: 4px solid var(--category-color, var(--color-border));
 }
 
 .place-item.dragging {
@@ -280,6 +293,58 @@ html, body {
   font-size: 1rem;
   padding-right: 2px;
   cursor: grab;
+}
+
+.place-group-heading {
+  list-style: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin: 14px 0 -2px;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.place-group-heading::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--category-color);
+  flex-shrink: 0;
+}
+
+.place-group-heading:first-child {
+  margin-top: 0;
+}
+
+/* Kategorie-Filter-Chips (Plan + Route) */
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.category-chip {
+  border: 1px solid var(--chip-color);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--chip-color);
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.category-chip.is-active {
+  background: var(--chip-color);
+  color: #fff;
+  opacity: 1;
 }
 
 /* Route */
@@ -295,6 +360,14 @@ html, body {
 #open-full-route-btn {
   width: 100%;
   margin-bottom: 12px;
+}
+
+.route-category-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--category-color, var(--color-border));
+  flex-shrink: 0;
 }
 
 /* Inspire */

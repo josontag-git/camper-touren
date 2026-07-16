@@ -4,7 +4,7 @@
 import { getGeminiKey } from "./settings.js";
 import { getState } from "./state.js";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.5-flash";
 
 let onAddToPlan = () => {};
 

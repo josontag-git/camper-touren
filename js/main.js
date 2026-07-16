@@ -12,6 +12,7 @@ import { initTripBar, openNewTripForm } from "./trips.js";
 import { initPlan, addPlaceFromSuggestion } from "./plan.js";
 import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
+import { initPullToRefresh } from "./pull-to-refresh.js";
 
 const VIEWS = ["inspire-view", "plan-view", "route-view", "settings-view"];
 
@@ -68,6 +69,11 @@ async function loadTrips() {
   }
 }
 
+async function refreshAll() {
+  await loadTrips();
+  await loadPlacesForCurrentTrip();
+}
+
 function initSettingsUI() {
   const urlInput = document.getElementById("script-url-input");
   const geminiInput = document.getElementById("gemini-key-input");
@@ -107,6 +113,7 @@ function init() {
     if (addPlaceFromSuggestion(fields)) switchView("plan-view");
   });
   registerServiceWorker();
+  initPullToRefresh(refreshAll);
 
   let lastTripId;
   subscribe((state) => {

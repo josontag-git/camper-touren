@@ -30,6 +30,10 @@
     </div>
 
     <main id="view-root">
+      <div id="pull-refresh-indicator" class="pull-refresh-indicator" aria-hidden="true">
+        <span id="pull-refresh-text">↓ Ziehen zum Aktualisieren</span>
+      </div>
+
       <section id="offline-banner" class="banner hidden" role="status">
         Offline – es werden zuletzt geladene Daten angezeigt.
       </section>
@@ -57,6 +61,7 @@
         <div class="trips-toolbar">
           <button id="add-place-btn" class="btn btn-primary">+ Ort hinzufügen</button>
         </div>
+        <div id="place-category-filters" class="category-filters"></div>
         <div id="plan-empty" class="empty-state hidden">
           <p>Noch keine Orte im Plan.</p>
         </div>
@@ -64,6 +69,7 @@
       </section>
 
       <section id="route-view" class="hidden">
+        <div id="route-category-filters" class="category-filters"></div>
         <div id="route-empty" class="empty-state hidden"></div>
         <div id="route-map" class="route-map hidden"></div>
         <button id="open-full-route-btn" class="btn btn-primary hidden">Gesamte Route in Google Maps öffnen</button>
