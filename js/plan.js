@@ -1,0 +1,255 @@
+// Plan-Ansicht: Orte des aktuellen Urlaubs anlegen/bearbeiten/löschen/sortieren.
+
+import { createPlace, updatePlace, deletePlace } from "./api.js";
+import { getState, subscribe, setPlaces } from "./state.js";
+
+const CATEGORIES = ["Campingplatz", "Sehenswürdigkeit", "Restaurant", "Aktivität", "Sonstiges"];
+
+let onStatus = () => {};
+let editingPlaceId = null; // null = nichts, "new" = neuer Ort, sonst place.id
+let dragSourceId = null;
+
+function sortedPlaces() {
+  return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+}
+
+function formatMeta(place) {
+  const parts = [];
+  if (place.category) parts.push(place.category);
+  if (place.arrivalDate) parts.push(place.departureDate ? `${place.arrivalDate} – ${place.departureDate}` : place.arrivalDate);
+  if (place.address) parts.push(place.address);
+  return parts.join(" · ") || "Keine Details";
+}
+
+function createViewRow(place) {
+  const li = document.createElement("li");
+  li.className = "trip-item place-item";
+  li.draggable = true;
+  li.dataset.id = place.id;
+
+  li.addEventListener("dragstart", () => { dragSourceId = place.id; li.classList.add("dragging"); });
+  li.addEventListener("dragend", () => { li.classList.remove("dragging"); });
+  li.addEventListener("dragover", (e) => e.preventDefault());
+  li.addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (dragSourceId && dragSourceId !== place.id) onReorder(dragSourceId, place.id);
+  });
+
+  const handle = document.createElement("span");
+  handle.className = "place-drag-handle";
+  handle.textContent = "☰";
+  handle.setAttribute("aria-label", "Ziehen zum Sortieren");
+
+  const info = document.createElement("div");
+  info.className = "trip-info";
+  const title = document.createElement("div");
+  title.className = "trip-title";
+  title.textContent = place.name || "(ohne Namen)";
+  const meta = document.createElement("div");
+  meta.className = "trip-meta";
+  meta.textContent = place.note ? `${formatMeta(place)} · ${place.note}` : formatMeta(place);
+  info.append(title, meta);
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "trip-icon-btn";
+  editBtn.textContent = "✎";
+  editBtn.setAttribute("aria-label", "Bearbeiten");
+  editBtn.addEventListener("click", () => { editingPlaceId = place.id; render(); });
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "trip-icon-btn";
+  delBtn.textContent = "✕";
+  delBtn.setAttribute("aria-label", "Löschen");
+  delBtn.addEventListener("click", () => onDelete(place));
+
+  li.append(handle, info, editBtn, delBtn);
+  return li;
+}
+
+function createFormRow(place) {
+  const isNew = !place;
+  const li = document.createElement("li");
+  li.className = "trip-item trip-item-editing";
+
+  const nameField = document.createElement("input");
+  nameField.type = "text";
+  nameField.placeholder = "Name des Orts";
+  nameField.value = place?.name || "";
+
+  const categoryField = document.createElement("select");
+  const blankOpt = document.createElement("option");
+  blankOpt.value = "";
+  blankOpt.textContent = "Kategorie …";
+  categoryField.appendChild(blankOpt);
+  CATEGORIES.forEach((cat) => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    if (place?.category === cat) opt.selected = true;
+    categoryField.appendChild(opt);
+  });
+
+  const arrivalField = document.createElement("input");
+  arrivalField.type = "date";
+  arrivalField.value = place?.arrivalDate || "";
+
+  const departureField = document.createElement("input");
+  departureField.type = "date";
+  departureField.value = place?.departureDate || "";
+
+  const addressField = document.createElement("input");
+  addressField.type = "text";
+  addressField.placeholder = "Adresse (optional)";
+  addressField.value = place?.address || "";
+
+  const latField = document.createElement("input");
+  latField.type = "number";
+  latField.step = "any";
+  latField.placeholder = "Breitengrad (optional)";
+  latField.value = place?.lat ?? "";
+
+  const lngField = document.createElement("input");
+  lngField.type = "number";
+  lngField.step = "any";
+  lngField.placeholder = "Längengrad (optional)";
+  lngField.value = place?.lng ?? "";
+
+  const noteField = document.createElement("input");
+  noteField.type = "text";
+  noteField.placeholder = "Notiz";
+  noteField.value = place?.note || "";
+
+  const fieldsWrap = document.createElement("div");
+  fieldsWrap.className = "trip-edit-fields";
+  fieldsWrap.append(nameField, categoryField, arrivalField, departureField, addressField, latField, lngField, noteField);
+
+  const actions = document.createElement("div");
+  actions.className = "trip-edit-actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "btn btn-primary";
+  saveBtn.textContent = "Speichern";
+  saveBtn.addEventListener("click", () => onSave(place, {
+    name: nameField.value.trim(),
+    category: categoryField.value,
+    arrivalDate: arrivalField.value,
+    departureDate: departureField.value,
+    address: addressField.value.trim(),
+    lat: latField.value,
+    lng: lngField.value,
+    note: noteField.value.trim(),
+  }, saveBtn));
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "btn btn-ghost-dark";
+  cancelBtn.textContent = "Abbrechen";
+  cancelBtn.addEventListener("click", () => { editingPlaceId = null; render(); });
+
+  actions.append(saveBtn, cancelBtn);
+  li.append(fieldsWrap, actions);
+  if (isNew) nameField.focus();
+  return li;
+}
+
+async function onSave(existing, fields, saveBtn) {
+  if (!fields.name) {
+    onStatus("Bitte einen Namen für den Ort eingeben.");
+    return;
+  }
+  const { currentTripId, places } = getState();
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Speichert …";
+  const record = {
+    id: existing?.id || crypto.randomUUID(),
+    tripId: currentTripId,
+    order: existing?.order ?? places.length,
+    ...fields,
+    placeId: existing?.placeId || "",
+    createdAt: existing?.createdAt || new Date().toISOString(),
+  };
+
+  try {
+    if (existing) {
+      await updatePlace(record);
+      setPlaces(places.map((p) => (p.id === record.id ? record : p)));
+    } else {
+      await createPlace(record);
+      setPlaces([...places, record]);
+    }
+    editingPlaceId = null;
+    render();
+  } catch (err) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Speichern";
+    onStatus(`Fehler beim Speichern: ${err.message}`);
+    console.error(err);
+  }
+}
+
+async function onDelete(place) {
+  if (!window.confirm(`"${place.name || "Ort"}" wirklich löschen?`)) return;
+  try {
+    await deletePlace(place.id);
+    setPlaces(getState().places.filter((p) => p.id !== place.id));
+  } catch (err) {
+    onStatus(`Fehler beim Löschen: ${err.message}`);
+    console.error(err);
+  }
+}
+
+async function onReorder(sourceId, targetId) {
+  const ordered = sortedPlaces();
+  const fromIndex = ordered.findIndex((p) => p.id === sourceId);
+  const toIndex = ordered.findIndex((p) => p.id === targetId);
+  if (fromIndex === -1 || toIndex === -1) return;
+
+  const [moved] = ordered.splice(fromIndex, 1);
+  ordered.splice(toIndex, 0, moved);
+  const reindexed = ordered.map((p, i) => ({ ...p, order: i }));
+  setPlaces(reindexed);
+  render();
+  await Promise.all(reindexed.map((p) => updatePlace(p))).catch((err) => {
+    onStatus(`Fehler beim Sortieren: ${err.message}`);
+    console.error(err);
+  });
+}
+
+export function addPlaceFromSuggestion(fields) {
+  const { currentTripId } = getState();
+  if (!currentTripId) return;
+  editingPlaceId = "new";
+  render();
+  const nameField = document.querySelector("#places-list .trip-item-editing input[type=text]");
+  if (nameField) nameField.value = fields.name || "";
+}
+
+function render() {
+  const { currentTrip } = getState();
+  const list = document.getElementById("places-list");
+  list.innerHTML = "";
+
+  if (!currentTrip) {
+    document.getElementById("plan-empty").classList.remove("hidden");
+    document.getElementById("add-place-btn").disabled = true;
+    return;
+  }
+  document.getElementById("add-place-btn").disabled = false;
+
+  const places = sortedPlaces();
+  places.forEach((place) => {
+    list.appendChild(place.id === editingPlaceId ? createFormRow(place) : createViewRow(place));
+  });
+  if (editingPlaceId === "new") list.appendChild(createFormRow(null));
+
+  document.getElementById("plan-empty").classList.toggle("hidden", places.length > 0 || editingPlaceId === "new");
+}
+
+export function initPlan(statusCallback) {
+  onStatus = statusCallback;
+  document.getElementById("add-place-btn").addEventListener("click", () => {
+    editingPlaceId = "new";
+    render();
+  });
+  subscribe(render);
+  render();
+}

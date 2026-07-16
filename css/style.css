@@ -222,7 +222,8 @@ html, body {
   font-weight: 600;
 }
 
-.settings-view input {
+.settings-view input,
+.settings-view select {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 8px 10px;
@@ -235,4 +236,143 @@ html, body {
 .settings-view .btn {
   align-self: flex-start;
   margin-top: 6px;
+}
+
+/* Trip-Bar */
+
+.trip-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trip-picker {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.trip-bar .trip-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Plan */
+
+.place-item {
+  cursor: grab;
+}
+
+.place-item.dragging {
+  opacity: 0.5;
+}
+
+.place-drag-handle {
+  color: var(--color-muted);
+  font-size: 1rem;
+  padding-right: 2px;
+  cursor: grab;
+}
+
+/* Route */
+
+.route-map {
+  width: 100%;
+  height: 260px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+#open-full-route-btn {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* Inspire */
+
+.inspire-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.inspire-search input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.inspire-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inspire-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.inspire-card .btn {
+  margin-top: 8px;
+}
+
+/* Farbschemata */
+
+[data-color-theme="seaview"] {
+  --color-bg: #eef5f7; --color-surface: #ffffff; --color-primary: #1f3a4d;
+  --color-accent: #2a8fa3; --color-text: #16232b; --color-muted: #5c7480; --color-border: #d7e6ea;
+}
+
+[data-color-theme="sunset"] {
+  --color-bg: #fff3ea; --color-surface: #ffffff; --color-primary: #7a3b53;
+  --color-accent: #e0703a; --color-text: #3a1f24; --color-muted: #8a6a63; --color-border: #f2d9c8;
+}
+
+[data-color-theme="beach"] {
+  --color-bg: #fdf6e8; --color-surface: #fffdf7; --color-primary: #2e6b6b;
+  --color-accent: #e0a233; --color-text: #2b2416; --color-muted: #8a7d5e; --color-border: #ecdfc0;
+}
+
+[data-color-theme="citylights"] {
+  --color-bg: #14151a; --color-surface: #1e2027; --color-primary: #0d0e12;
+  --color-accent: #7c5cff; --color-text: #eef0f5; --color-muted: #9199ab; --color-border: #2b2e38;
+  color-scheme: dark;
+}
+
+[data-color-theme="mountainview"] {
+  --color-bg: #f2f5f0; --color-surface: #ffffff; --color-primary: #33402f;
+  --color-accent: #5c8a3f; --color-text: #232920; --color-muted: #6f7a64; --color-border: #dde3d5;
+}
+
+[data-color-theme="party"] {
+  --color-bg: #1a1025; --color-surface: #241733; --color-primary: #120a1c;
+  --color-accent: #ff2e88; --color-text: #f5ecff; --color-muted: #b49ed1; --color-border: #3a2650;
+  color-scheme: dark;
+}
+
+[data-color-theme="relax"] {
+  --color-bg: #f5f2fa; --color-surface: #ffffff; --color-primary: #4a4066;
+  --color-accent: #8b7fc7; --color-text: #2c2740; --color-muted: #7d759a; --color-border: #e3ddf0;
+}
+
+[data-color-theme="crazy"] {
+  --color-bg: #fafafa; --color-surface: #ffffff; --color-primary: #ff2d55;
+  --color-accent: #00b8d9; --color-text: #1a1a1a; --color-muted: #7a7a7a; --color-border: #ffd400;
 }

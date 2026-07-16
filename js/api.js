@@ -7,28 +7,12 @@
 // da Apps Script keine CORS-Preflight-Requests beantwortet – die Antwort kann
 // dabei nicht gelesen werden, wir aktualisieren den lokalen State optimistisch.
 
-const STORAGE_SCRIPT_URL = "campingAppScriptUrl";
-
-export function getScriptUrl() {
-  return localStorage.getItem(STORAGE_SCRIPT_URL) || "";
-}
-
-export function setScriptUrl(url) {
-  localStorage.setItem(STORAGE_SCRIPT_URL, url.trim());
-}
-
-function requireScriptUrl() {
-  const url = getScriptUrl();
-  if (!url) {
-    throw new Error("Keine Apps-Script-URL hinterlegt. Bitte unter Einstellungen eintragen.");
-  }
-  return url;
-}
+import { getScriptUrl } from "./settings.js";
 
 let cache = null;
 
 async function fetchAll() {
-  const url = requireScriptUrl();
+  const url = getScriptUrl();
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Apps-Script-Antwort ${res.status}`);
   cache = await res.json();
@@ -36,7 +20,7 @@ async function fetchAll() {
 }
 
 async function postAction(entity, action, data) {
-  const url = requireScriptUrl();
+  const url = getScriptUrl();
   await fetch(url, {
     method: "POST",
     mode: "no-cors",

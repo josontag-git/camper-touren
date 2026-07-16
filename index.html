@@ -23,41 +23,78 @@
       <h1>Camper Touren</h1>
     </header>
 
+    <div id="trip-bar" class="trip-bar">
+      <select id="trip-picker" class="trip-picker" aria-label="Urlaub auswählen"></select>
+      <button id="edit-trip-btn" class="trip-icon-btn" aria-label="Urlaub bearbeiten">✎</button>
+      <button id="delete-trip-btn" class="trip-icon-btn" aria-label="Urlaub löschen">✕</button>
+    </div>
+
     <main id="view-root">
       <section id="offline-banner" class="banner hidden" role="status">
         Offline – es werden zuletzt geladene Daten angezeigt.
       </section>
 
-      <section id="trips-view" class="trips-view">
-        <div class="trips-toolbar">
-          <button id="add-trip-btn" class="btn btn-primary">+ Neuer Urlaub</button>
+      <div id="status-message" class="empty-state hidden">
+        <p id="status-message-text"></p>
+      </div>
+
+      <section id="trip-form-view" class="hidden"></section>
+
+      <section id="inspire-view">
+        <p id="inspire-key-hint" class="banner hidden">
+          Kein Gemini-API-Key hinterlegt. Kostenlos erstellbar auf
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>,
+          dann unter Einstellungen eintragen.
+        </p>
+        <div class="inspire-search">
+          <input id="inspire-query" type="text" placeholder="z. B. Campingplätze an der Nordküste Bretagne" />
+          <button id="inspire-search-btn" class="btn btn-primary">Vorschläge holen</button>
         </div>
-        <div id="empty-state" class="empty-state">
-          <p id="empty-state-text">Lade Urlaube …</p>
-        </div>
-        <ul id="trips-list" class="trips-list"></ul>
+        <div id="inspire-results" class="inspire-results"></div>
       </section>
 
-      <section id="map-view" class="hidden">
-        <p class="muted">Kartenansicht folgt in einem späteren Milestone.</p>
+      <section id="plan-view" class="hidden">
+        <div class="trips-toolbar">
+          <button id="add-place-btn" class="btn btn-primary">+ Ort hinzufügen</button>
+        </div>
+        <div id="plan-empty" class="empty-state hidden">
+          <p>Noch keine Orte im Plan.</p>
+        </div>
+        <ul id="places-list" class="trips-list"></ul>
+      </section>
+
+      <section id="route-view" class="hidden">
+        <div id="route-empty" class="empty-state hidden"></div>
+        <div id="route-map" class="route-map hidden"></div>
+        <button id="open-full-route-btn" class="btn btn-primary hidden">Gesamte Route in Google Maps öffnen</button>
+        <ul id="route-list" class="trips-list"></ul>
       </section>
 
       <section id="settings-view" class="settings-view hidden">
         <h2>Einstellungen</h2>
+
         <label for="script-url-input">Apps-Script-Web-App-URL</label>
         <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
+
+        <label for="gemini-key-input">Gemini-API-Key (für Inspire)</label>
+        <input id="gemini-key-input" type="text" placeholder="AIza…" />
+
+        <label for="color-theme-select">Farbschema</label>
+        <select id="color-theme-select"></select>
+
         <p class="muted">
-          Erzeugt im Google Sheet unter Erweiterungen → Apps Script → Bereitstellen
-          → Web App. Details siehe README.
+          Apps-Script-URL: Erweiterungen → Apps Script → Bereitstellen → Web App
+          (Details siehe README). Gemini-Key: kostenlos auf aistudio.google.com.
         </p>
-        <button id="save-script-url-btn" class="btn btn-primary">Speichern</button>
+        <button id="save-settings-btn" class="btn btn-primary">Speichern</button>
         <p id="settings-status" class="muted"></p>
       </section>
     </main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
-      <button class="nav-item is-active" data-view="trips-view">Urlaube</button>
-      <button class="nav-item" data-view="map-view">Karte</button>
+      <button class="nav-item is-active" data-view="inspire-view">Inspire</button>
+      <button class="nav-item" data-view="plan-view">Plan</button>
+      <button class="nav-item" data-view="route-view">Route</button>
       <button class="nav-item" data-view="settings-view">Einstellungen</button>
     </nav>
   </div>

@@ -2,24 +2,36 @@
 
 Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 
-## Stand: Milestone 3 – Sheets-CRUD für Trips (über Apps Script)
+## Stand: Milestone 4 – Trip-Auswahl mit Inspire/Plan/Route
 
-Enthalten:
-- `index.html` – App-Shell mit Header, Bottom-Nav, Urlaubs-Liste, Einstellungen
-- `manifest.webmanifest` – installierbar als PWA
-- `service-worker.js` – cached die App-Shell (HTML/CSS/JS/Icons) für Offline-Start
-- `css/style.css`, `js/main.js`, `js/sw-register.js`
+Oben wählt man den Urlaub (Picker + Anlegen/Bearbeiten/Löschen). Für den
+gewählten Urlaub gibt es drei Bereiche plus Einstellungen (Bottom-Nav):
+
+- **Inspire** – Ortsvorschläge per Gemini (Google-Search-Grounding). Braucht
+  einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Suche.
+- **Plan** – Orte anlegen/bearbeiten/löschen, per Drag&Drop sortierbar
+  (Reihenfolge wird im Sheet gespeichert), mit Kategorie/Daten/Adresse/Koordinaten.
+- **Route** – Karte (Google Maps JavaScript API) mit den Orten, die Koordinaten
+  haben, plus Absprung einzelner Orte oder der gesamten Route nach Google Maps.
+- **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema.
+
+Dateien:
+- `index.html`, `css/style.css`, `manifest.webmanifest`, `service-worker.js`
+- `js/main.js` – Bootstrap, View-Umschaltung, Einstellungen
+- `js/state.js` – kleiner Pub/Sub-Store (aktueller Urlaub + seine Orte)
+- `js/settings.js` – localStorage-Einstellungen (Apps-Script-URL, Gemini-Key)
+- `js/theme.js` – Farbschema-Verwaltung
+- `js/trips.js`, `js/plan.js`, `js/route.js`, `js/inspire.js` – die vier Bereiche
 - `js/api.js` – Client für die Google-Apps-Script-Web-App (Trips/Places CRUD)
 - `apps-script/Code.gs` – Code für Google Apps Script (wird manuell ins Google
   Sheet eingefügt, nicht automatisch deployt), legt die Tabs "Trips"/"Places"
-  samt Kopfzeile automatisch an, falls sie fehlen
-- `icons/` – Platzhalter-Icons (SVG)
+  samt Kopfzeile automatisch an, formatiert Zellen vor dem Schreiben als Text
+  (sonst wandelt Sheets zahlen-/datumsähnliche Werte wie Koordinaten automatisch um)
+- `icons/` – App-Icon-Set
 
-Urlaube lassen sich anlegen, bearbeiten und löschen (Upsert per ID). Places
-(Orte innerhalb eines Urlaubs) sind als CRUD-API vorbereitet, aber noch ohne UI.
-
-Noch NICHT enthalten (folgt in späteren Milestones): Places-Suche, Karten/Routen,
-Drag&Drop, IndexedDB-Offline-Cache für Trip-Daten.
+Noch NICHT enthalten: IndexedDB-Offline-Cache für Trip-Daten, echte
+Places-Autocomplete/-Suche (Inspire liefert Textvorschläge, keine strukturierten
+Google-Places-Ergebnisse mit garantierten Koordinaten).
 
 ## Technische Entscheidung: Apps Script statt Google-Cloud-OAuth
 
@@ -72,14 +84,32 @@ automatisch angelegt – im Sheet muss vorher nichts vorbereitet werden.
 
 ## App mit dem Sheet verbinden
 
-1. In der App unten auf **"Einstellungen"** tippen.
-2. Die kopierte Web-App-URL einfügen, **Speichern**.
-3. Ab jetzt werden Urlaube direkt aus dem Sheet geladen und Änderungen dorthin
-   geschrieben. Die URL bleibt lokal im Browser (`localStorage`) gespeichert.
+Die App hat die Web-App-URL des Camper-Sheets bereits als Standardwert
+hinterlegt (`js/settings.js`, `DEFAULT_SCRIPT_URL`) – ohne weiteres Zutun
+nutzbar. Für ein anderes Sheet: in der App unter **"Einstellungen"** die
+eigene Web-App-URL eintragen und speichern (überschreibt den Default nur
+lokal im Browser, `localStorage`).
+
+**Sicherheitshinweis:** Die Standard-URL liegt damit im (öffentlichen)
+Repo-Code – wer sie kennt, kann Daten in dieses Sheet schreiben/lesen (kein
+Login nötig, "Zugriff: Jeder"-Deployment). Bewusste Entscheidung für dieses
+private Reise-Sheet ohne sensible Daten.
 
 Bei Änderungen an `Code.gs` muss im Sheet eine **neue Version** der
 Bereitstellung erstellt werden (Bereitstellen → Bereitstellungen verwalten →
 Bearbeiten → Neue Version) – die `/exec`-URL bleibt dabei gleich.
+
+## Gemini-API-Key (für Inspire)
+
+Kostenlos erstellbar auf [aistudio.google.com](https://aistudio.google.com/apikey),
+dann in der App unter **Einstellungen** eintragen (nur lokal gespeichert,
+nicht committed). Ohne Key zeigt "Inspire" nur einen Hinweis statt der Suche.
+
+## Farbschema
+
+Unter **Einstellungen → Farbschema** wählbar: Seaview, Sunset, Beach,
+Citylights, Mountain View, Party, Relax, Crazy. Definiert als CSS-Variablen
+pro `[data-color-theme="…"]` in `css/style.css`.
 
 ## Lokal starten
 
@@ -124,8 +154,8 @@ Wird beim ersten Zugriff automatisch angelegt, falls die Tabs noch fehlen:
 - `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt`
 - `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt`
 
-## Nächster Schritt (Milestone 4)
+## Nächster Schritt (Milestone 5)
 
-Places-Suche (Google Places API) und UI zum Hinzufügen von Orten zu einem
-Urlaub, darauf aufbauend Kartenansicht (Milestone 5) und Drag&Drop-Reihenfolge
-(Milestone 6).
+IndexedDB-Offline-Cache für Trip-/Places-Daten, echte Google-Places-Suche
+(strukturierte Ergebnisse mit garantierten Koordinaten statt Gemini-Textliste)
+als Ergänzung zu Inspire.

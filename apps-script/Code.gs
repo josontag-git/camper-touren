@@ -59,16 +59,22 @@ function readSheet(name, headers) {
 function upsertRow(sheet, headers, record) {
   const row = headers.map((key) => record[key] ?? "");
   const lastRow = sheet.getLastRow();
+  let targetRow = null;
   if (lastRow > 1) {
     const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
     for (let i = 0; i < ids.length; i++) {
-      if (ids[i][0] === record.id) {
-        sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
-        return;
-      }
+      if (ids[i][0] === record.id) { targetRow = i + 2; break; }
     }
   }
-  sheet.appendRow(row);
+  if (!targetRow) targetRow = lastRow + 1;
+
+  const range = sheet.getRange(targetRow, 1, 1, row.length);
+  // Ohne Text-Format wandelt Sheets zahlen-/datumsähnliche Werte automatisch
+  // um (z. B. wird der Längengrad "9.9" als Datum "9. September" interpretiert
+  // und die eigentliche Zahl geht verloren). Deshalb vor dem Schreiben jede
+  // Zelle explizit als Text formatieren.
+  range.setNumberFormat("@");
+  range.setValues([row]);
 }
 
 function deleteRowById(sheet, id) {
