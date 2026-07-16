@@ -70,10 +70,12 @@ function upsertRow(sheet, headers, record) {
 
   const range = sheet.getRange(targetRow, 1, 1, row.length);
   // Ohne Text-Format wandelt Sheets zahlen-/datumsähnliche Werte automatisch
-  // um (z. B. wird der Längengrad "9.9" als Datum "9. September" interpretiert
-  // und die eigentliche Zahl geht verloren). Deshalb vor dem Schreiben jede
-  // Zelle explizit als Text formatieren.
+  // um (z. B. wird "2026-08-01" oder der Längengrad "9.9" als Datum
+  // interpretiert und der eigentliche Wert geht verloren). Das Format muss
+  // per flush() VOR dem Schreiben tatsächlich angewendet sein, sonst greift
+  // Sheets' Auto-Erkennung trotzdem beim nachfolgenden setValues().
   range.setNumberFormat("@");
+  SpreadsheetApp.flush();
   range.setValues([row]);
 }
 
