@@ -3,13 +3,14 @@
 // Hier zunächst nur: App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start
 // und Installierbarkeit.
 
-const CACHE_VERSION = "app-shell-v1";
+const CACHE_VERSION = "app-shell-v2";
 
 const APP_SHELL = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/main.js",
+  "./js/api.js",
   "./js/sw-register.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",

@@ -19,19 +19,11 @@
   <meta name="apple-mobile-web-app-title" content="Camper Touren" />
 
   <link rel="stylesheet" href="css/style.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div id="app">
     <header class="app-header">
       <h1>Camper Touren</h1>
-      <div id="auth-area">
-        <button id="login-btn" class="btn btn-primary">Mit Google anmelden</button>
-        <div id="user-chip" class="user-chip hidden">
-          <span id="user-email"></span>
-          <button id="logout-btn" class="btn btn-ghost">Abmelden</button>
-        </div>
-      </div>
     </header>
 
     <main id="view-root">
@@ -39,22 +31,37 @@
         Offline – es werden zuletzt geladene Daten angezeigt.
       </section>
 
-      <section id="empty-state" class="empty-state">
-        <p id="empty-state-text">Bitte zuerst mit Google anmelden.</p>
-      </section>
-
-      <section id="trips-view" class="trips-view hidden">
+      <section id="trips-view" class="trips-view">
         <div class="trips-toolbar">
           <button id="add-trip-btn" class="btn btn-primary">+ Neuer Urlaub</button>
         </div>
+        <div id="empty-state" class="empty-state">
+          <p id="empty-state-text">Lade Urlaube …</p>
+        </div>
         <ul id="trips-list" class="trips-list"></ul>
+      </section>
+
+      <section id="map-view" class="hidden">
+        <p class="muted">Kartenansicht folgt in einem späteren Milestone.</p>
+      </section>
+
+      <section id="settings-view" class="settings-view hidden">
+        <h2>Einstellungen</h2>
+        <label for="script-url-input">Apps-Script-Web-App-URL</label>
+        <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
+        <p class="muted">
+          Erzeugt im Google Sheet unter Erweiterungen → Apps Script → Bereitstellen
+          → Web App. Details siehe README.
+        </p>
+        <button id="save-script-url-btn" class="btn btn-primary">Speichern</button>
+        <p id="settings-status" class="muted"></p>
       </section>
     </main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
-      <button class="nav-item is-active" data-view="trips">Urlaube</button>
-      <button class="nav-item" data-view="map">Karte</button>
-      <button class="nav-item" data-view="settings">Einstellungen</button>
+      <button class="nav-item is-active" data-view="trips-view">Urlaube</button>
+      <button class="nav-item" data-view="map-view">Karte</button>
+      <button class="nav-item" data-view="settings-view">Einstellungen</button>
     </nav>
   </div>
 

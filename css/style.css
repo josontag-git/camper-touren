@@ -120,13 +120,6 @@ html, body {
   text-decoration: underline;
 }
 
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-}
-
 .trips-toolbar {
   display: flex;
   justify-content: flex-end;
@@ -207,4 +200,39 @@ html, body {
   background: none;
   color: var(--color-muted);
   font-weight: 500;
+}
+
+.settings-view {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-view h2 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+
+.settings-view label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.settings-view input {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.settings-view .btn {
+  align-self: flex-start;
+  margin-top: 6px;
 }

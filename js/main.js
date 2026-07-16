@@ -1,22 +1,25 @@
 // Camper Touren – App-Einstieg
-// Milestone 3: Trip-Übersicht mit Sheets-CRUD (anlegen/bearbeiten/löschen).
-// Places, Maps, Drag&Drop folgen in späteren Milestones.
+// Datenhaltung läuft über eine Google-Apps-Script-Web-App (siehe js/api.js) –
+// kein Google-Login nötig. Places-UI, Maps, Drag&Drop folgen später.
 
 import { registerServiceWorker } from "./sw-register.js";
-import { login, logout, onAuthChange, isSignedIn, getUser } from "./auth.js";
-import { getTrips, createTrip, updateTrip, deleteTrip } from "./sheets.js";
+import { getTrips, createTrip, updateTrip, deleteTrip, getScriptUrl, setScriptUrl } from "./api.js";
 
 let trips = [];
 let editingTripId = null; // null = nichts wird bearbeitet, "new" = neuer Urlaub, sonst trip.id
 
+function switchView(viewId) {
+  document.querySelectorAll(".nav-item").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.view === viewId);
+  });
+  ["trips-view", "map-view", "settings-view"].forEach((id) => {
+    document.getElementById(id).classList.toggle("hidden", id !== viewId);
+  });
+}
+
 function initNav() {
-  const navButtons = document.querySelectorAll(".nav-item");
-  navButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      navButtons.forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
-      // Milestone 5+: hier Views wechseln (Trips / Karte / Einstellungen)
-    });
+  document.querySelectorAll(".nav-item").forEach((btn) => {
+    btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
 }
 
@@ -158,9 +161,10 @@ async function onSaveTrip(existingTrip, fields, saveBtn) {
 }
 
 function nameRequiredHint() {
+  const empty = document.getElementById("empty-state");
   setEmptyStateText("Bitte einen Namen für den Urlaub eingeben.");
-  document.getElementById("empty-state").classList.remove("hidden");
-  setTimeout(() => document.getElementById("empty-state").classList.add("hidden"), 2000);
+  empty.classList.remove("hidden");
+  setTimeout(() => empty.classList.add("hidden"), 2000);
 }
 
 async function onDeleteTrip(trip) {
@@ -190,22 +194,21 @@ function renderTrips() {
     list.appendChild(createTripFormRow(null));
   }
 
-  document.getElementById("empty-state").classList.toggle("hidden", trips.length > 0 || editingTripId === "new");
-  if (trips.length === 0 && editingTripId !== "new") {
+  const showEmpty = trips.length === 0 && editingTripId !== "new";
+  document.getElementById("empty-state").classList.toggle("hidden", !showEmpty);
+  if (showEmpty) {
     setEmptyStateText("Noch keine Urlaube angelegt – leg deinen ersten Urlaub an!");
   }
 }
 
 async function loadAndRenderTrips() {
-  const trigger = document.getElementById("trips-view");
-  trigger.classList.remove("hidden");
   setEmptyStateText("Lade Urlaube …");
   document.getElementById("empty-state").classList.remove("hidden");
   try {
     trips = await getTrips();
     renderTrips();
   } catch (err) {
-    setEmptyStateText(`Fehler beim Laden der Urlaube: ${err.message}`);
+    setEmptyStateText(err.message);
     console.error(err);
   }
 }
@@ -217,38 +220,15 @@ function initTripsUI() {
   });
 }
 
-function renderAuthState({ user, isSignedIn: signedIn }) {
-  const loginBtn = document.getElementById("login-btn");
-  const userChip = document.getElementById("user-chip");
-  const userEmail = document.getElementById("user-email");
+function initSettingsUI() {
+  const input = document.getElementById("script-url-input");
+  const status = document.getElementById("settings-status");
+  input.value = getScriptUrl();
 
-  loginBtn.classList.toggle("hidden", signedIn);
-  userChip.classList.toggle("hidden", !signedIn);
-
-  if (signedIn && user) {
-    userEmail.textContent = user.email || "Angemeldet";
+  document.getElementById("save-script-url-btn").addEventListener("click", () => {
+    setScriptUrl(input.value);
+    status.textContent = "Gespeichert.";
     loadAndRenderTrips();
-  } else {
-    document.getElementById("trips-view").classList.add("hidden");
-    setEmptyStateText("Bitte zuerst mit Google anmelden.");
-  }
-}
-
-function initAuthUI() {
-  onAuthChange(renderAuthState);
-  renderAuthState({ user: getUser(), isSignedIn: isSignedIn() });
-
-  document.getElementById("login-btn").addEventListener("click", async () => {
-    try {
-      await login();
-    } catch (err) {
-      setEmptyStateText(`Login fehlgeschlagen: ${err.message}`);
-      console.error(err);
-    }
-  });
-
-  document.getElementById("logout-btn").addEventListener("click", () => {
-    logout();
   });
 }
 
@@ -256,8 +236,15 @@ function init() {
   initNav();
   initOfflineBanner();
   initTripsUI();
-  initAuthUI();
+  initSettingsUI();
   registerServiceWorker();
+
+  if (getScriptUrl()) {
+    loadAndRenderTrips();
+  } else {
+    setEmptyStateText("Bitte zuerst die Apps-Script-URL unter Einstellungen eintragen.");
+    switchView("settings-view");
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
