@@ -2,17 +2,23 @@
 
 Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 
-## Stand: Milestone 1 – Grundgerüst
+## Stand: Milestone 3 – Sheets-CRUD für Trips
 
 Enthalten:
-- `index.html` – App-Shell mit Header, Bottom-Nav, Platzhalter-Views
+- `index.html` – App-Shell mit Header, Bottom-Nav, Urlaubs-Liste
 - `manifest.webmanifest` – installierbar als PWA
 - `service-worker.js` – cached die App-Shell (HTML/CSS/JS/Icons) für Offline-Start
 - `css/style.css`, `js/main.js`, `js/sw-register.js`
+- `js/auth.js` – Google-Login (GIS OAuth 2.0 Token Client)
+- `js/sheets.js` – Sheets-API-Client inkl. automatischem Anlegen der Tabs
+  "Trips"/"Places" samt Kopfzeile, falls sie im Sheet noch fehlen
 - `icons/` – Platzhalter-Icons (SVG)
 
-Noch NICHT enthalten (folgt in späteren Milestones): Google-Login, Sheets-Sync,
-Places-Suche, Karten/Routen, Drag&Drop, IndexedDB-Offline-Cache für Trip-Daten.
+Urlaube lassen sich anlegen, bearbeiten und löschen (Upsert per ID). Places
+(Orte innerhalb eines Urlaubs) sind als CRUD-API vorbereitet, aber noch ohne UI.
+
+Noch NICHT enthalten (folgt in späteren Milestones): Places-Suche, Karten/Routen,
+Drag&Drop, IndexedDB-Offline-Cache für Trip-Daten.
 
 ## Technische Entscheidung: kein Build-Tool (kein Vite/React)
 
@@ -69,9 +75,15 @@ Ordner speichern konnte. Bitte die Bilddatei direkt in diesen Projektordner lege
 (z. B. als `icons/source-icon.png`) – dann erzeuge ich daraus im nächsten Schritt
 das finale Icon-Set (192, 512, maskable, apple-touch-icon) als PNG.
 
-## Nächster Schritt (Milestone 2)
+## Datenmodell (Google Sheet)
 
-Google-Login via Google Identity Services (OAuth 2.0), Testabruf gegen das
-Google Sheet (lesen). Voraussetzung dafür: die Punkte 1–4 aus Abschnitt 3 des
-Briefings (Google-Cloud-Projekt, APIs aktivieren, OAuth-Client-ID, API-Key) –
-bitte Bescheid geben, sobald das erledigt ist, dann geht's weiter.
+Wird beim ersten Login automatisch angelegt, falls die Tabs noch fehlen:
+
+- `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt`
+- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt`
+
+## Nächster Schritt (Milestone 4)
+
+Places-Suche (Google Places API) und UI zum Hinzufügen von Orten zu einem
+Urlaub, darauf aufbauend Kartenansicht (Milestone 5) und Drag&Drop-Reihenfolge
+(Milestone 6).
