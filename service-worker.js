@@ -3,7 +3,7 @@
 // Hier zunächst nur: App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start
 // und Installierbarkeit.
 
-const CACHE_VERSION = "app-shell-v2";
+const CACHE_VERSION = "app-shell-v3";
 
 const APP_SHELL = [
   "./",
@@ -13,8 +13,11 @@ const APP_SHELL = [
   "./js/api.js",
   "./js/sw-register.js",
   "./manifest.webmanifest",
-  "./icons/icon.svg",
-  "./icons/icon-maskable.svg",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-192.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {

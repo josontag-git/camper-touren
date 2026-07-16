@@ -109,13 +109,13 @@ Dieses Repo ist für GitHub Pages vorbereitet – kein Server nötig, alles läu
 statisch im Browser. Nach dem Push auf `main` unter **Settings → Pages** als
 Quelle Branch `main` / Root-Verzeichnis einstellen.
 
-## Icons – bitte einmal nachziehen
+## Icons
 
-Die Icons in `icons/` sind Platzhalter (einfache SVG-Van-Silhouette), da ich das
-im Chat gezeigte App-Icon ("We travel the world") nicht automatisiert in diesen
-Ordner speichern konnte. Bitte die Bilddatei direkt in diesen Projektordner legen
-(z. B. als `icons/source-icon.png`) – dann erzeuge ich daraus im nächsten Schritt
-das finale Icon-Set (192, 512, maskable, apple-touch-icon) als PNG.
+`icons/camper_app_icon.png` ist die Quelldatei ("We travel the world"-Motiv,
+2048×2048). Daraus generiert: `icon-192.png`, `icon-512.png` (normale
+App-Icons), `icon-maskable-192.png`/`icon-maskable-512.png` (mit Safe-Zone-
+Rand, damit OS-Masken nichts Wichtiges abschneiden) sowie
+`apple-touch-icon.png` (180×180, eckig – iOS rundet selbst ab).
 
 ## Datenmodell (Google Sheet)
 

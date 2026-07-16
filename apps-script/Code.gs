@@ -39,12 +39,19 @@ function readSheet(name, headers) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
+  const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   const rows = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
   return rows
     .filter((row) => row[0] !== "")
     .map((row) => {
       const obj = {};
-      headers.forEach((key, i) => { obj[key] = row[i]; });
+      headers.forEach((key, i) => {
+        const value = row[i];
+        // Sheets wandelt Text wie "2026-08-01" automatisch in ein Datum um;
+        // beim Zurücklesen als Date-Objekt normalisieren wir es wieder auf
+        // "yyyy-MM-dd", statt das ISO-Datum mit Zeitzonen-Versatz durchzureichen.
+        obj[key] = value instanceof Date ? Utilities.formatDate(value, tz, "yyyy-MM-dd") : value;
+      });
       return obj;
     });
 }
