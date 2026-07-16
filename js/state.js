@@ -32,7 +32,9 @@ export function subscribe(cb) {
 
 export function setTrips(newTrips) {
   trips = newTrips;
-  if (currentTripId && !trips.some((t) => t.id === currentTripId)) {
+  if (!trips.some((t) => t.id === currentTripId)) {
+    // Kein (gültiger) Urlaub ausgewählt -- gilt auch beim allerersten Start
+    // auf einem neuen Gerät (currentTripId dann noch null).
     setCurrentTripId(trips[0]?.id || null);
     return;
   }
