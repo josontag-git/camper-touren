@@ -2,10 +2,11 @@
 
 Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 
-## Stand: Milestone 4 – Trip-Auswahl mit Inspire/Plan/Route
+## Stand: Milestone 5 – Redesign (Mono) + Kategorien-/Urlaubsverwaltung
 
 Oben wählt man den Urlaub (Picker + Anlegen/Bearbeiten/Löschen). Für den
-gewählten Urlaub gibt es drei Bereiche plus Einstellungen (Bottom-Nav):
+gewählten Urlaub gibt es drei Bereiche plus Einstellungen (floatende
+Bottom-Nav mit Icons):
 
 - **Inspire** – Chat mit Gemini (Google-Search-Grounding, Mehrturn-Konversation)
   für kreative Ideen zum Urlaub; Gemini stellt bei Bedarf auch Rückfragen.
@@ -13,17 +14,45 @@ gewählten Urlaub gibt es drei Bereiche plus Einstellungen (Bottom-Nav):
   Keine strukturierte Orts-Suche hier – das macht Plan.
 - **Plan** – Orte suchen (volle Google-Places-Suche: Umkreis um den aktuellen
   Standort, Foto, Sterne-Bewertung + Link zur Maps-Seite, Kategorie per Button
-  wählen) oder manuell eintragen, nach Kategorie gruppiert
-  (Camping/Sport/Sightseeing/Restaurant/Sonstiges/Ohne Kategorie) mit
-  Filter-Chips zum Ein-/Ausblenden. Umschaltbar zwischen Ansicht nach
-  Kategorie (mit Drag&Drop-Sortierung), nach Datum, oder nach aktueller
-  Entfernung (Standortabfrage).
+  wählen) oder manuell eintragen, nach Kategorie gruppiert mit Filter-Chips
+  zum Ein-/Ausblenden. Umschaltbar zwischen Ansicht nach Kategorie (mit
+  Drag&Drop-Sortierung), nach Datum, oder nach aktueller Entfernung
+  (Standortabfrage).
 - **Route** – Karte (Google Maps JavaScript API) mit ALLEN Orten des Urlaubs,
   die Koordinaten haben – Marker nach Kategorie eingefärbt –, Liste darunter,
   plus Absprung einzelner Orte oder der gesamten Route nach Google Maps.
-- **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema.
+- **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema, sowie
+  Urlaubs- und Kategorienverwaltung (siehe unten).
 
 Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt Urlaube/Orte neu.
+
+### Design
+
+Helles, warmes Grundlayout (Creme-Hintergrund, schwarzer Text, abgerundete
+weiße Karten mit weichem Schatten statt Rahmen, pillenförmige Buttons/Chips,
+floatende schwarze Bottom-Nav mit weißem Kreis um das aktive Icon) –
+angelehnt an ein vorgegebenes Referenzdesign. "Mono" (Schwarz/Weiß/Creme) ist
+das Standard-Farbschema; die übrigen 8 Farbschemata (Seaview, Sunset, Beach,
+Citylights, Mountain View, Party, Relax, Crazy) überschreiben nur die
+Farbwerte, nicht die Grundform der Elemente.
+
+### Urlaubsverwaltung (Einstellungen)
+
+Unter **Einstellungen → Urlaube verwalten** lässt sich jeder Urlaub inline
+bearbeiten (Name/Zeitraum/Notiz) oder löschen. Löschen entfernt den Urlaub
+inkl. aller zugehörigen Orte unwiderruflich und erfordert eine zweite,
+inline eingeblendete Bestätigung ("Wirklich löschen? Ja, löschen / Abbrechen").
+
+### Kategorienverwaltung (Einstellungen)
+
+Unter **Einstellungen → Kategorien verwalten** lassen sich die Orts-
+Kategorien umbenennen, umfärben, löschen oder neu anlegen. Kategorien gelten
+global für die gesamte App (nicht pro Urlaub) und werden in `localStorage`
+gespeichert (`js/categories.js`, Key `campingAppCategories`) – Standard sind
+Camping/Sport/Sightseeing/Restaurant/Sonstiges. Änderungen wirken sich sofort
+auf Plan (Gruppierung/Filter) und Route (Marker-Farben) aus; Ansichten, die
+beim Ändern gerade nicht aktiv sind, übernehmen den neuen Stand beim nächsten
+Rendern (z. B. Tab-Wechsel mit State-Änderung oder Neuladen).
 
 Dateien:
 - `index.html`, `css/style.css`, `manifest.webmanifest`, `service-worker.js`
@@ -128,9 +157,9 @@ nicht committed). Ohne Key zeigt "Inspire" nur einen Hinweis statt der Suche.
 
 ## Farbschema
 
-Unter **Einstellungen → Farbschema** wählbar: Seaview, Sunset, Beach,
-Citylights, Mountain View, Party, Relax, Crazy. Definiert als CSS-Variablen
-pro `[data-color-theme="…"]` in `css/style.css`.
+Unter **Einstellungen → Farbschema** wählbar: Mono (Standard), Seaview,
+Sunset, Beach, Citylights, Mountain View, Party, Relax, Crazy. Definiert als
+CSS-Variablen pro `[data-color-theme="…"]` in `css/style.css`.
 
 ## Lokal starten
 

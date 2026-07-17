@@ -8,7 +8,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#3a424a" />
+  <meta name="theme-color" content="#141414" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -81,32 +81,64 @@
         <ul id="route-list" class="trips-list"></ul>
       </section>
 
-      <section id="settings-view" class="settings-view hidden">
-        <h2>Einstellungen</h2>
+      <section id="settings-view" class="hidden">
+        <div class="settings-view">
+          <h2>Einstellungen</h2>
 
-        <label for="script-url-input">Apps-Script-Web-App-URL</label>
-        <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
+          <label for="script-url-input">Apps-Script-Web-App-URL</label>
+          <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
 
-        <label for="gemini-key-input">Gemini-API-Key (für Inspire)</label>
-        <input id="gemini-key-input" type="text" placeholder="AIza…" />
+          <label for="gemini-key-input">Gemini-API-Key (für Inspire)</label>
+          <input id="gemini-key-input" type="text" placeholder="AIza…" />
 
-        <label for="color-theme-select">Farbschema</label>
-        <select id="color-theme-select"></select>
+          <label for="color-theme-select">Farbschema</label>
+          <select id="color-theme-select"></select>
 
-        <p class="muted">
-          Apps-Script-URL: Erweiterungen → Apps Script → Bereitstellen → Web App
-          (Details siehe README). Gemini-Key: kostenlos auf aistudio.google.com.
-        </p>
-        <button id="save-settings-btn" class="btn btn-primary">Speichern</button>
-        <p id="settings-status" class="muted"></p>
+          <p class="muted">
+            Apps-Script-URL: Erweiterungen → Apps Script → Bereitstellen → Web App
+            (Details siehe README). Gemini-Key: kostenlos auf aistudio.google.com.
+          </p>
+          <button id="save-settings-btn" class="btn btn-primary">Speichern</button>
+          <p id="settings-status" class="muted"></p>
+        </div>
+
+        <div class="settings-view">
+          <h2>Urlaube verwalten</h2>
+          <p class="muted">
+            Löschen entfernt den Urlaub und alle zugehörigen Orte unwiderruflich
+            – dafür ist eine zweite Bestätigung nötig.
+          </p>
+          <ul id="settings-trips-list" class="trips-list"></ul>
+        </div>
+
+        <div class="settings-view">
+          <h2>Kategorien verwalten</h2>
+          <p class="muted">
+            Gilt für die gesamte App (nicht pro Urlaub). Name/Farbe ändern und
+            mit ✓ speichern, oder neue Kategorie unten hinzufügen.
+          </p>
+          <div id="settings-categories-container"></div>
+        </div>
       </section>
     </main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
-      <button class="nav-item is-active" data-view="inspire-view">Inspire</button>
-      <button class="nav-item" data-view="plan-view">Plan</button>
-      <button class="nav-item" data-view="route-view">Route</button>
-      <button class="nav-item" data-view="settings-view">Einstellungen</button>
+      <button class="nav-item is-active" data-view="inspire-view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>Inspire</span>
+      </button>
+      <button class="nav-item" data-view="plan-view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+        <span>Plan</span>
+      </button>
+      <button class="nav-item" data-view="route-view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.94 11A8.94 8.94 0 1 0 12 20.94"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h9"/></svg>
+        <span>Route</span>
+      </button>
+      <button class="nav-item" data-view="settings-view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Einstellungen</span>
+      </button>
     </nav>
   </div>
 

@@ -7,7 +7,7 @@
 import { CONFIG } from "./config.js";
 import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
-import { CATEGORIES, UNCATEGORIZED, categoryInfo, ALL_CATEGORY_IDS, renderCategoryFilterChips, renderCategoryButtons } from "./categories.js";
+import { getCategories, UNCATEGORIZED, categoryInfo, allCategoryIds, renderCategoryFilterChips, renderCategoryButtons } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
 
 const RADIUS_OPTIONS = [
@@ -50,7 +50,7 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 function groupedByCategory() {
   const all = sortedPlaces();
-  return [...CATEGORIES, UNCATEGORIZED].map((cat) => ({
+  return [...getCategories(), UNCATEGORIZED].map((cat) => ({
     ...cat,
     places: all.filter((p) => (p.category || "") === cat.id),
   }));
@@ -153,7 +153,7 @@ function createFormRow(place) {
   blankOpt.value = "";
   blankOpt.textContent = "Kategorie …";
   categoryField.appendChild(blankOpt);
-  CATEGORIES.forEach((cat) => {
+  getCategories().forEach((cat) => {
     const opt = document.createElement("option");
     opt.value = cat.id;
     opt.textContent = cat.label;
@@ -711,7 +711,7 @@ function render() {
 
   if (places.length > 0) {
     renderCategoryFilterChips(filtersEl, isCategoryVisible, (catId) => {
-      toggleCategoryFilter(ALL_CATEGORY_IDS, catId);
+      toggleCategoryFilter(allCategoryIds(), catId);
       render();
     });
   }

@@ -4,6 +4,7 @@
 const STORAGE_COLOR_THEME = "campingAppColorTheme";
 
 export const THEMES = [
+  { id: "mono", label: "Mono (Standard)" },
   { id: "seaview", label: "Seaview" },
   { id: "sunset", label: "Sunset" },
   { id: "beach", label: "Beach" },
@@ -14,7 +15,7 @@ export const THEMES = [
   { id: "crazy", label: "Crazy" },
 ];
 
-const DEFAULT_THEME = "seaview";
+const DEFAULT_THEME = "mono";
 
 export function getColorTheme() {
   return localStorage.getItem(STORAGE_COLOR_THEME) || DEFAULT_THEME;

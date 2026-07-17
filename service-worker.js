@@ -1,7 +1,7 @@
 // App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start und Installierbarkeit.
 // Trip-/Places-Daten selbst werden separat in localStorage gecacht (js/api.js).
 
-const CACHE_VERSION = "app-shell-v12";
+const CACHE_VERSION = "app-shell-v13";
 
 const APP_SHELL = [
   "./",

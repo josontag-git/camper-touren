@@ -7,11 +7,12 @@ import { getTrips, getPlaces, wasLastLoadOffline } from "./api.js";
 import { getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey } from "./settings.js";
 import { getColorTheme, setColorTheme, applyColorTheme, THEMES } from "./theme.js";
 import { getState, subscribe, setTrips, setPlaces } from "./state.js";
-import { initTripBar, openNewTripForm } from "./trips.js";
+import { initTripBar, openNewTripForm, initTripsSettings } from "./trips.js";
 import { initPlan } from "./plan.js";
 import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
+import { renderCategoriesSettings } from "./categories.js";
 
 const VIEWS = ["inspire-view", "plan-view", "route-view", "settings-view"];
 
@@ -98,6 +99,9 @@ function initSettingsUI() {
     status.textContent = "Gespeichert.";
     loadTrips();
   });
+
+  initTripsSettings();
+  renderCategoriesSettings(document.getElementById("settings-categories-container"));
 }
 
 function init() {
