@@ -4,11 +4,12 @@
 // geclustert (mit Filter-Chips und Drag&Drop), nach Datum gruppiert, oder
 // nach aktueller Entfernung sortiert.
 
-import { CONFIG } from "./config.js";
 import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
 import { getCategories, UNCATEGORIZED, categoryInfo, allCategoryIds, renderCategoryFilterChips, renderCategoryButtons } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
+import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
+import { openPlaceDetailModal } from "./place-details.js";
 
 const RADIUS_OPTIONS = [
   { value: "", label: "Umkreis: egal" },
@@ -105,14 +106,32 @@ function createViewRow(place, metaOverride) {
 
   const info = document.createElement("div");
   info.className = "trip-info";
+  if (place.placeId) {
+    info.classList.add("trip-info-clickable");
+    info.setAttribute("role", "button");
+    info.setAttribute("tabindex", "0");
+    info.addEventListener("click", () => openPlaceDetailModal(place));
+    info.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlaceDetailModal(place); }
+    });
+  }
   const title = document.createElement("div");
   title.className = "trip-title";
   title.textContent = place.name || "(ohne Namen)";
   const meta = document.createElement("div");
   meta.className = "trip-meta";
   const baseMeta = metaOverride || formatMeta(place);
-  meta.textContent = place.note ? `${baseMeta} · ${place.note}` : baseMeta;
+  const ratingPrefix = place.rating ? `${starRating(place.rating)} ${place.rating} · ` : "";
+  meta.textContent = place.note ? `${ratingPrefix}${baseMeta} · ${place.note}` : `${ratingPrefix}${baseMeta}`;
   info.append(title, meta);
+
+  let thumb = null;
+  if (place.photoRef) {
+    thumb = document.createElement("img");
+    thumb.className = "place-thumb";
+    thumb.src = photoUrl(place.photoRef, 120);
+    thumb.alt = "";
+  }
 
   const editBtn = document.createElement("button");
   editBtn.className = "trip-icon-btn";
@@ -126,14 +145,15 @@ function createViewRow(place, metaOverride) {
   delBtn.setAttribute("aria-label", "Löschen");
   delBtn.addEventListener("click", () => onDelete(place));
 
+  const thumbPart = thumb ? [thumb] : [];
   if (draggable) {
     const handle = document.createElement("span");
     handle.className = "place-drag-handle";
     handle.textContent = "☰";
     handle.setAttribute("aria-label", "Ziehen zum Sortieren");
-    li.append(handle, info, editBtn, delBtn);
+    li.append(handle, ...thumbPart, info, editBtn, delBtn);
   } else {
-    li.append(info, editBtn, delBtn);
+    li.append(...thumbPart, info, editBtn, delBtn);
   }
   return li;
 }
@@ -364,60 +384,6 @@ function renderDistanceMode(list) {
 
 // --- Google-Maps-Suche (Places Text Search, New) beim Ort-Hinzufügen ---
 
-function photoUrl(name, maxWidthPx = 400) {
-  return `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${maxWidthPx}&key=${CONFIG.GOOGLE_MAPS_API_KEY}`;
-}
-
-function starRating(rating) {
-  const full = Math.round(rating);
-  return "★".repeat(full) + "☆".repeat(5 - full);
-}
-
-function getCurrentPosition() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Standortbestimmung wird von diesem Browser nicht unterstützt."));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => reject(new Error("Standort konnte nicht ermittelt werden (Berechtigung erteilt?).")),
-      { timeout: 8000 }
-    );
-  });
-}
-
-async function searchGooglePlaces(query, radiusKm) {
-  if (!CONFIG.GOOGLE_MAPS_API_KEY || CONFIG.GOOGLE_MAPS_API_KEY === "REPLACE_ME") {
-    throw new Error("Kein Google-Maps-API-Key in js/config.js hinterlegt.");
-  }
-  const body = { textQuery: query };
-  if (radiusKm) {
-    const pos = await getCurrentPosition();
-    body.locationBias = { circle: { center: { latitude: pos.lat, longitude: pos.lng }, radius: Number(radiusKm) * 1000 } };
-  }
-
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": CONFIG.GOOGLE_MAPS_API_KEY,
-      "X-Goog-FieldMask": [
-        "places.id", "places.displayName", "places.formattedAddress", "places.location",
-        "places.rating", "places.userRatingCount", "places.photos", "places.googleMapsUri",
-      ].join(","),
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => "");
-    throw new Error(`Places-API-Fehler ${res.status}: ${errBody}`);
-  }
-  const data = await res.json();
-  return data.places || [];
-}
-
 async function saveSearchResult(place, index, dates, saveBtn) {
   const { currentTripId, places } = getState();
   if (!currentTripId) {
@@ -440,6 +406,9 @@ async function saveSearchResult(place, index, dates, saveBtn) {
     note: "",
     placeId: place.id || "",
     createdAt: new Date().toISOString(),
+    photoRef: place.photos?.[0]?.name || "",
+    rating: place.rating ?? "",
+    userRatingCount: place.userRatingCount ?? "",
   };
 
   try {

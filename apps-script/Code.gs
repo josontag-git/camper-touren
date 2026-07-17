@@ -10,6 +10,7 @@ const SHEET_PLACES = "Places";
 const PLACES_HEADERS = [
   "id", "tripId", "order", "name", "lat", "lng", "address",
   "category", "arrivalDate", "departureDate", "note", "placeId", "createdAt",
+  "photoRef", "rating", "userRatingCount",
 ];
 
 function doGet(e) {
@@ -97,6 +98,14 @@ function getOrCreateSheet(name, headers) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     sheet.appendRow(headers);
+    return sheet;
+  }
+  // Additive Migration: falls Code.gs seit dem Anlegen des Sheets neue Spalten
+  // bekommen hat, fehlende Kopfzeilen-Zellen ergaenzen (Daten bleiben unberuehrt).
+  const existingCols = sheet.getLastColumn();
+  if (existingCols < headers.length) {
+    sheet.getRange(1, existingCols + 1, 1, headers.length - existingCols)
+      .setValues([headers.slice(existingCols)]);
   }
   return sheet;
 }

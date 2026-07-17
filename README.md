@@ -2,29 +2,39 @@
 
 Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 
-## Stand: Milestone 5 – Redesign (Mono) + Kategorien-/Urlaubsverwaltung
+## Stand: Milestone 6 – Inspire-Vorschläge, Foto/Rating in Listen, Ortsdetails
 
 Oben wählt man den Urlaub (Picker + Anlegen/Bearbeiten/Löschen). Für den
 gewählten Urlaub gibt es drei Bereiche plus Einstellungen (floatende
-Bottom-Nav mit Icons):
+Bottom-Nav mit Icon + Text-Label):
 
 - **Inspire** – Chat mit Gemini (Google-Search-Grounding, Mehrturn-Konversation)
-  für kreative Ideen zum Urlaub; Gemini stellt bei Bedarf auch Rückfragen.
-  Braucht einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Chat.
-  Keine strukturierte Orts-Suche hier – das macht Plan.
+  für kreative Ideen zum Urlaub; Gemini stellt bei Bedarf auch Rückfragen –
+  als kurze, klickbare Antwort-Chips unter der jeweiligen Antwort (Klick
+  befüllt und sendet die Nachricht direkt). Konkrete Ortsvorschläge aus dem
+  Gespräch erscheinen zusätzlich als Vorschau-Karten (Foto + Sterne-Bewertung
+  aus der Google-Places-Suche) mit direktem "Zu Plan hinzufügen". Braucht
+  einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Chat.
 - **Plan** – Orte suchen (volle Google-Places-Suche: Umkreis um den aktuellen
   Standort, Foto, Sterne-Bewertung + Link zur Maps-Seite, Kategorie per Button
   wählen) oder manuell eintragen, nach Kategorie gruppiert mit Filter-Chips
   zum Ein-/Ausblenden. Umschaltbar zwischen Ansicht nach Kategorie (mit
   Drag&Drop-Sortierung), nach Datum, oder nach aktueller Entfernung
-  (Standortabfrage).
+  (Standortabfrage). Gespeicherte Orte aus einer Suche zeigen in der Liste
+  ein Vorschaubild + Sterne; antippen öffnet eine Detailansicht mit weiteren
+  Fotos und Rezensionen.
 - **Route** – Karte (Google Maps JavaScript API) mit ALLEN Orten des Urlaubs,
-  die Koordinaten haben – Marker nach Kategorie eingefärbt –, Liste darunter,
-  plus Absprung einzelner Orte oder der gesamten Route nach Google Maps.
+  die Koordinaten haben – Marker nach Kategorie eingefärbt –, Liste darunter
+  (ebenfalls mit Vorschaubild/Sterne + antippbarer Detailansicht), plus
+  Absprung einzelner Orte oder der gesamten Route nach Google Maps.
 - **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema, sowie
   Urlaubs- und Kategorienverwaltung (siehe unten).
 
-Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt Urlaube/Orte neu.
+Der Header zeigt automatisch das Foto des ersten gespeicherten Orts (mit
+Foto) des aktuellen Urlaubs als Hintergrund (z. B. ein Bergpanorama bei einer
+Südtirol-Tour) – ohne passendes Foto bleibt er wie zuvor eine reine
+Farbfläche. Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt
+Urlaube/Orte neu.
 
 ### Design
 
@@ -63,6 +73,10 @@ Dateien:
 - `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Chip-Rendering
 - `js/maps-loader.js` – lädt die Google Maps JavaScript API einmalig nach
   (gemeinsam genutzt von Route für die Karte und Plan für die Orts-Suche)
+- `js/places-search.js` – gemeinsame Places-Text-Search-Helper (Foto-URL,
+  Sterne-Rendering, Suche), genutzt von `plan.js` und `inspire.js`
+- `js/place-details.js` – Detailansicht (Modal) für einen gespeicherten Ort:
+  weitere Fotos + Rezensionen via Places-API-"Place Details"
 - `js/trips.js`, `js/plan.js`, `js/route.js`, `js/inspire.js` – die vier Bereiche
 - `js/pull-to-refresh.js` – Pull-to-Refresh-Geste
 - `js/api.js` – Client für die Google-Apps-Script-Web-App (Trips/Places CRUD)
@@ -199,12 +213,22 @@ Rand, damit OS-Masken nichts Wichtiges abschneiden) sowie
 
 ## Datenmodell (Google Sheet)
 
-Wird beim ersten Zugriff automatisch angelegt, falls die Tabs noch fehlen:
+Wird beim ersten Zugriff automatisch angelegt, falls die Tabs noch fehlen;
+fehlende Kopfzeilen-Spalten werden beim nächsten Zugriff automatisch ergänzt
+(additive Migration in `getOrCreateSheet`, bestehende Zeilen bleiben unberührt):
 
 - `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt`
-- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt`
+- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt, photoRef, rating, userRatingCount`
+
+`photoRef`/`rating`/`userRatingCount` werden nur bei Orten aus einer
+Places-Suche befüllt (Plan-Suche oder Inspire-Vorschau) – manuell angelegte
+Orte bleiben dort leer, Listen zeigen dann wie bisher nur Text ohne
+Vorschaubild/Sterne. **Nach dem Update von `Code.gs`** muss im Sheet wie
+gewohnt eine neue Version der Apps-Script-Bereitstellung erstellt werden
+(siehe oben, "App mit dem Sheet verbinden").
 
 ## Mögliche nächste Schritte
 
-Echte Google-Places-Suche (strukturierte Ergebnisse mit garantierten
-Koordinaten statt Gemini-Textliste) als Ergänzung zu Inspire.
+Echte Rezensions-Volltextsuche/-Filterung, evtl. Offline-Caching der
+Foto-URLs (aktuell werden sie live bei jedem Rendern über die Places API
+nachgeladen).

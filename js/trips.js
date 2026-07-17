@@ -2,6 +2,7 @@
 
 import { createTrip, updateTrip, deleteTrip, deletePlace, getPlaces } from "./api.js";
 import { getState, subscribe, setTrips, setPlaces, setCurrentTripId } from "./state.js";
+import { photoUrl } from "./places-search.js";
 
 const NEW_TRIP_VALUE = "__new__";
 
@@ -38,6 +39,27 @@ function renderPicker() {
   const hasCurrent = !!currentTripId;
   document.getElementById("edit-trip-btn").disabled = !hasCurrent;
   document.getElementById("delete-trip-btn").disabled = !hasCurrent;
+}
+
+// Headerbild aus dem ersten gespeicherten Ort des aktuellen Urlaubs, der ein
+// Foto hat (per `order` sortiert) – ohne Treffer bleibt der Header wie bisher
+// eine reine Farbfläche, kein zusätzlicher Bild-Beschaffungsaufwand nötig.
+function updateHeaderPhoto() {
+  const header = document.querySelector(".app-header");
+  if (!header) return;
+  const { places } = getState();
+  const withPhoto = places
+    .slice()
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+    .find((p) => p.photoRef);
+
+  if (withPhoto) {
+    header.style.backgroundImage = `url("${photoUrl(withPhoto.photoRef, 800)}")`;
+    header.classList.add("app-header--photo");
+  } else {
+    header.style.backgroundImage = "";
+    header.classList.remove("app-header--photo");
+  }
 }
 
 function renderForm() {
@@ -187,8 +209,10 @@ export function initTripBar(statusCallback) {
 
   subscribe(() => {
     renderPicker();
+    updateHeaderPhoto();
   });
   renderPicker();
+  updateHeaderPhoto();
 }
 
 export function openNewTripForm() {

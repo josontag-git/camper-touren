@@ -34,22 +34,45 @@ html, body {
 
 .app-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  padding: env(safe-area-inset-top, 0) 20px 10px;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
+  padding: env(safe-area-inset-top, 0) 20px 18px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
+  min-height: 84px;
   background: var(--color-bg);
+  background-size: cover;
+  background-position: center;
   color: var(--color-text);
   position: sticky;
   top: 0;
   z-index: 10;
+  transition: background-image 0.2s ease-out;
+}
+
+.app-header--photo {
+  color: #fff;
+  background-blend-mode: darken;
+  background-color: rgba(10, 10, 12, 0.45);
+}
+
+.app-header--photo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%);
+  z-index: -1;
 }
 
 .app-header h1 {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   margin: 0;
   font-weight: 700;
   letter-spacing: -0.01em;
+  text-shadow: none;
+}
+
+.app-header--photo h1 {
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 #view-root {
@@ -122,28 +145,27 @@ html, body {
 .nav-item {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   border: none;
   background: none;
-  padding: 12px;
+  padding: 10px 4px;
   color: rgba(255, 255, 255, 0.55);
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
 
 .nav-item svg {
-  width: 22px;
-  height: 22px;
+  width: 19px;
+  height: 19px;
 }
 
 .nav-item span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .nav-item.is-active {
@@ -187,6 +209,18 @@ html, body {
 .trip-info {
   flex: 1;
   min-width: 0;
+}
+
+.trip-info-clickable {
+  cursor: pointer;
+}
+
+.place-thumb {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--radius);
 }
 
 .trip-title {
@@ -439,7 +473,7 @@ html, body {
 
 .route-map {
   width: 100%;
-  height: 260px;
+  height: 340px;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   margin-bottom: 14px;
@@ -552,6 +586,20 @@ html, body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
+.inspire-quick-replies {
+  margin: -4px 0 4px;
+}
+
+.inspire-quick-replies .category-chip {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.inspire-suggestion-card {
+  padding: 14px 16px;
+}
+
 .inspire-add-panel {
   margin-top: 12px;
   padding-top: 12px;
@@ -576,6 +624,74 @@ html, body {
   object-fit: cover;
   border-radius: var(--radius);
   scroll-snap-align: start;
+}
+
+/* Ortsdetails (Modal) */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 12, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 20;
+  padding: 0;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 20px;
+  box-shadow: var(--shadow-nav);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.place-reviews-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.place-review {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.place-review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.place-review-author {
+  font-weight: 700;
+}
+
+.place-review-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 /* Kategorienverwaltung (Einstellungen) */
@@ -630,43 +746,43 @@ html, body {
 }
 
 [data-color-theme="seaview"] {
-  --color-bg: #eef5f7; --color-surface: #ffffff; --color-primary: #1f3a4d;
-  --color-accent: #2a8fa3; --color-text: #16232b; --color-muted: #5c7480; --color-border: #d7e6ea;
+  --color-bg: #e3f4f7; --color-surface: #ffffff; --color-primary: #0d3b52;
+  --color-accent: #00a8c2; --color-text: #0c222c; --color-muted: #4d7688; --color-border: #bfe6ee;
 }
 
 [data-color-theme="sunset"] {
-  --color-bg: #fff3ea; --color-surface: #ffffff; --color-primary: #7a3b53;
-  --color-accent: #e0703a; --color-text: #3a1f24; --color-muted: #8a6a63; --color-border: #f2d9c8;
+  --color-bg: #ffe9d6; --color-surface: #ffffff; --color-primary: #99215a;
+  --color-accent: #ff6a2e; --color-text: #3a1220; --color-muted: #93594f; --color-border: #ffcda3;
 }
 
 [data-color-theme="beach"] {
-  --color-bg: #fdf6e8; --color-surface: #fffdf7; --color-primary: #2e6b6b;
-  --color-accent: #e0a233; --color-text: #2b2416; --color-muted: #8a7d5e; --color-border: #ecdfc0;
+  --color-bg: #fdf0d0; --color-surface: #fffdf7; --color-primary: #00807a;
+  --color-accent: #ffb100; --color-text: #26210f; --color-muted: #8c7a3f; --color-border: #ffe3a3;
 }
 
 [data-color-theme="citylights"] {
-  --color-bg: #14151a; --color-surface: #1e2027; --color-primary: #0d0e12;
-  --color-accent: #7c5cff; --color-text: #eef0f5; --color-muted: #9199ab; --color-border: #2b2e38;
+  --color-bg: #121320; --color-surface: #1d1e2e; --color-primary: #0a0b14;
+  --color-accent: #9d5cff; --color-text: #f2effc; --color-muted: #a29ac2; --color-border: #34304e;
   color-scheme: dark;
 }
 
 [data-color-theme="mountainview"] {
-  --color-bg: #f2f5f0; --color-surface: #ffffff; --color-primary: #33402f;
-  --color-accent: #5c8a3f; --color-text: #232920; --color-muted: #6f7a64; --color-border: #dde3d5;
+  --color-bg: #eaf3e4; --color-surface: #ffffff; --color-primary: #1f3317;
+  --color-accent: #3fa34d; --color-text: #182414; --color-muted: #5f7a52; --color-border: #cbe3bd;
 }
 
 [data-color-theme="party"] {
-  --color-bg: #1a1025; --color-surface: #241733; --color-primary: #120a1c;
-  --color-accent: #ff2e88; --color-text: #f5ecff; --color-muted: #b49ed1; --color-border: #3a2650;
+  --color-bg: #1c0f2e; --color-surface: #2a1740; --color-primary: #0f0819;
+  --color-accent: #ff2ea6; --color-text: #fbf0ff; --color-muted: #c49bec; --color-border: #46296b;
   color-scheme: dark;
 }
 
 [data-color-theme="relax"] {
-  --color-bg: #f5f2fa; --color-surface: #ffffff; --color-primary: #4a4066;
-  --color-accent: #8b7fc7; --color-text: #2c2740; --color-muted: #7d759a; --color-border: #e3ddf0;
+  --color-bg: #efe8fb; --color-surface: #ffffff; --color-primary: #3a2d63;
+  --color-accent: #8a5cf0; --color-text: #241a3d; --color-muted: #786a9c; --color-border: #d9caf5;
 }
 
 [data-color-theme="crazy"] {
-  --color-bg: #fafafa; --color-surface: #ffffff; --color-primary: #ff2d55;
-  --color-accent: #00b8d9; --color-text: #1a1a1a; --color-muted: #7a7a7a; --color-border: #ffd400;
+  --color-bg: #fafafa; --color-surface: #ffffff; --color-primary: #ff1f52;
+  --color-accent: #00d2f5; --color-text: #16161a; --color-muted: #6b6b70; --color-border: #ffe000;
 }

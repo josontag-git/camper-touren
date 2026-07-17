@@ -5,6 +5,8 @@
 import { getState, subscribe } from "./state.js";
 import { categoryInfo } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
+import { photoUrl, starRating } from "./places-search.js";
+import { openPlaceDetailModal } from "./place-details.js";
 
 let map = null;
 let markers = [];
@@ -95,12 +97,22 @@ function renderList(places) {
 
     const info = document.createElement("div");
     info.className = "trip-info";
+    if (place.placeId) {
+      info.classList.add("trip-info-clickable");
+      info.setAttribute("role", "button");
+      info.setAttribute("tabindex", "0");
+      info.addEventListener("click", () => openPlaceDetailModal(place));
+      info.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlaceDetailModal(place); }
+      });
+    }
     const title = document.createElement("div");
     title.className = "trip-title";
     title.textContent = `${i + 1}. ${place.name || "(ohne Namen)"}`;
     const meta = document.createElement("div");
     meta.className = "trip-meta";
-    meta.textContent = hasCoords(place) ? `${place.lat}, ${place.lng}` : (place.address || "Keine Koordinaten/Adresse");
+    const baseMeta = hasCoords(place) ? `${place.lat}, ${place.lng}` : (place.address || "Keine Koordinaten/Adresse");
+    meta.textContent = place.rating ? `${starRating(place.rating)} ${place.rating} · ${baseMeta}` : baseMeta;
     info.append(title, meta);
 
     const link = document.createElement("a");
@@ -110,7 +122,16 @@ function renderList(places) {
     link.rel = "noopener";
     link.textContent = "Maps ↗";
 
-    li.append(dot, info, link);
+    const thumbPart = [];
+    if (place.photoRef) {
+      const thumb = document.createElement("img");
+      thumb.className = "place-thumb";
+      thumb.src = photoUrl(place.photoRef, 120);
+      thumb.alt = "";
+      thumbPart.push(thumb);
+    }
+
+    li.append(dot, ...thumbPart, info, link);
     list.appendChild(li);
   });
 }
