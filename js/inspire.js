@@ -1,47 +1,46 @@
-// Inspire-Ansicht: Ortsvorschläge per Gemini (Google-Search-Grounding).
-// Braucht einen Gemini-API-Key (Einstellungen) – ohne Key nur ein Hinweis.
+// Inspire-Ansicht: Chat mit Gemini (Google-Search-Grounding) für Ideen zum
+// Urlaub – echtes Hin und Her, Gemini kann auch Rückfragen stellen statt nur
+// eine starre Liste auszuspucken. Konkrete Orte suchen/hinzufügen passiert
+// in Plan (dort mit den vollen Google-Maps-Funktionen).
 
 import { getGeminiKey } from "./settings.js";
 import { getState } from "./state.js";
 
 const MODEL = "gemini-3.5-flash";
 
-let onAddToPlan = () => {};
+let onStatus = () => {};
+let conversation = []; // [{ role: "user" | "model", text }]
 
-function buildPrompt(query, trip) {
-  const context = trip ? `Kontext: Urlaub "${trip.name}"${trip.startDate ? ` (${trip.startDate} bis ${trip.endDate})` : ""}.` : "";
+function systemContext() {
+  const { currentTrip } = getState();
+  const tripInfo = currentTrip
+    ? `Der Nutzer plant gerade den Urlaub "${currentTrip.name}"${currentTrip.startDate ? ` (${currentTrip.startDate} bis ${currentTrip.endDate})` : ""}.`
+    : "Der Nutzer hat noch keinen konkreten Urlaub ausgewählt.";
   return (
-    `${context}\n` +
-    `Gib mir Vorschläge für: ${query}\n\n` +
-    `Antworte AUSSCHLIESSLICH als nummerierte Liste, ein Vorschlag pro Zeile, ` +
-    `Format exakt: "1. Name – Kurzbeschreibung (max. 1 Satz)". ` +
-    `Keine Einleitung, keine Zusammenfassung, keine weiteren Erklärungen.`
+    `Du bist "Inspire", ein kreativer Reise-Assistent in einer Camper-Urlaubsplanungs-App. ` +
+    `${tripInfo} Gib konkrete, kreative Ideen (Orte, Routen, Aktivitäten, Zeitpunkte) und ` +
+    `stelle bei Bedarf gezielte Rückfragen, um die Vorschläge zu verbessern (z. B. nach Interessen, ` +
+    `verfügbarer Zeit, Reisestil). Antworte kurz und konkret, keine langen Einleitungen. ` +
+    `Die konkrete Suche/Speicherung einzelner Orte macht der Nutzer separat im Bereich "Plan" – ` +
+    `du musst keine Orte strukturiert auflisten, ein normales Gespräch reicht.`
   );
 }
 
-function parseSuggestions(text) {
-  const items = [];
-  const lines = text.split("\n");
-  const re = /^\s*\d+[.)]\s*(.+?)\s*[–-]\s*(.+)$/;
-  lines.forEach((line) => {
-    const match = line.match(re);
-    if (match) {
-      items.push({ name: match[1].replace(/\*\*/g, "").trim(), description: match[2].trim() });
-    }
-  });
-  return items;
-}
-
-async function callGemini(query) {
+async function callGemini() {
   const key = getGeminiKey();
-  const { currentTrip } = getState();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+
+  const contents = conversation.map((turn) => ({
+    role: turn.role,
+    parts: [{ text: turn.text }],
+  }));
 
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: buildPrompt(query, currentTrip) }] }],
+      contents,
+      systemInstruction: { parts: [{ text: systemContext() }] },
       tools: [{ google_search: {} }],
     }),
   });
@@ -52,48 +51,33 @@ async function callGemini(query) {
   }
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+  if (!text) throw new Error("Keine Antwort von Gemini erhalten.");
   return text;
 }
 
-function renderResults(items, rawText) {
+function renderConversation() {
   const container = document.getElementById("inspire-results");
   container.innerHTML = "";
 
-  if (items.length === 0) {
-    const p = document.createElement("p");
-    p.className = "muted";
-    p.textContent = rawText || "Keine Vorschläge gefunden.";
-    container.appendChild(p);
+  if (conversation.length === 0) {
+    const hint = document.createElement("p");
+    hint.className = "muted";
+    hint.textContent = "Frag nach Ideen für Orte, Routen oder Aktivitäten – z. B. \"Was können wir an einem Regentag an der Nordsee machen?\"";
+    container.appendChild(hint);
     return;
   }
 
-  items.forEach((item) => {
-    const card = document.createElement("div");
-    card.className = "inspire-card";
-
-    const title = document.createElement("div");
-    title.className = "trip-title";
-    title.textContent = item.name;
-
-    const desc = document.createElement("div");
-    desc.className = "trip-meta";
-    desc.textContent = item.description;
-
-    const addBtn = document.createElement("button");
-    addBtn.className = "btn btn-primary";
-    addBtn.textContent = "Zu Plan hinzufügen";
-    addBtn.addEventListener("click", () => onAddToPlan({ name: item.name, note: item.description }));
-
-    card.append(title, desc, addBtn);
-    container.appendChild(card);
+  conversation.forEach((turn) => {
+    const bubble = document.createElement("div");
+    bubble.className = turn.role === "user" ? "chat-bubble chat-bubble-user" : "chat-bubble chat-bubble-model";
+    bubble.textContent = turn.text;
+    container.appendChild(bubble);
   });
 }
 
-async function onSearch() {
+async function onSend() {
   const input = document.getElementById("inspire-query");
-  const query = input.value.trim();
-  const btn = document.getElementById("inspire-search-btn");
-  const container = document.getElementById("inspire-results");
+  const text = input.value.trim();
   const hint = document.getElementById("inspire-key-hint");
 
   if (!getGeminiKey()) {
@@ -101,34 +85,37 @@ async function onSearch() {
     return;
   }
   hint.classList.add("hidden");
-  if (!query) return;
+  if (!text) return;
+
+  const btn = document.getElementById("inspire-search-btn");
+  conversation.push({ role: "user", text });
+  input.value = "";
+  renderConversation();
 
   btn.disabled = true;
-  btn.textContent = "Sucht …";
-  container.innerHTML = "";
+  btn.textContent = "…";
+  onStatus("");
   try {
-    const text = await callGemini(query);
-    renderResults(parseSuggestions(text), text);
+    const reply = await callGemini();
+    conversation.push({ role: "model", text: reply });
+    renderConversation();
   } catch (err) {
-    container.innerHTML = "";
-    const p = document.createElement("p");
-    p.className = "muted";
-    p.textContent = err.message;
-    container.appendChild(p);
+    onStatus(err.message);
     console.error(err);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Vorschläge holen";
+    btn.textContent = "Senden";
   }
 }
 
-export function initInspire(addToPlanCallback) {
-  onAddToPlan = addToPlanCallback;
-  document.getElementById("inspire-search-btn").addEventListener("click", onSearch);
+export function initInspire(statusCallback) {
+  onStatus = statusCallback;
+  document.getElementById("inspire-search-btn").addEventListener("click", onSend);
   document.getElementById("inspire-query").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") onSearch();
+    if (e.key === "Enter") onSend();
   });
   document.getElementById("inspire-key-hint").classList.toggle("hidden", !!getGeminiKey());
+  renderConversation();
 }
 
 export function refreshInspireKeyHint() {

@@ -1,7 +1,6 @@
 // Camper Touren – App-Einstieg. Orchestriert Trip-Auswahl (trips.js) und die
 // drei Bereiche Inspire (inspire.js) / Plan (plan.js) / Route (route.js) für
-// den jeweils gewählten Urlaub, plus Einstellungen (Apps-Script-URL,
-// Gemini-Key, Farbschema).
+// den jeweils gewählten Urlaub, plus Einstellungen (Apps-Script-URL, Farbschema).
 
 import { registerServiceWorker } from "./sw-register.js";
 import { getTrips, getPlaces, wasLastLoadOffline } from "./api.js";
@@ -9,7 +8,7 @@ import { getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey } from "./settin
 import { getColorTheme, setColorTheme, applyColorTheme, THEMES } from "./theme.js";
 import { getState, subscribe, setTrips, setPlaces } from "./state.js";
 import { initTripBar, openNewTripForm } from "./trips.js";
-import { initPlan, addPlaceFromSuggestion } from "./plan.js";
+import { initPlan } from "./plan.js";
 import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
@@ -109,9 +108,7 @@ function init() {
   initTripBar(setStatus);
   initPlan(setStatus);
   initRoute();
-  initInspire((fields) => {
-    if (addPlaceFromSuggestion(fields)) switchView("plan-view");
-  });
+  initInspire(setStatus);
   registerServiceWorker();
   initPullToRefresh(refreshAll);
 

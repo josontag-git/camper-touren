@@ -50,16 +50,22 @@
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>,
           dann unter Einstellungen eintragen.
         </p>
+        <div id="inspire-results" class="inspire-chat"></div>
         <div class="inspire-search">
-          <input id="inspire-query" type="text" placeholder="z. B. Campingplätze an der Nordküste Bretagne" />
-          <button id="inspire-search-btn" class="btn btn-primary">Vorschläge holen</button>
+          <input id="inspire-query" type="text" placeholder="z. B. Was können wir an einem Regentag machen?" />
+          <button id="inspire-search-btn" class="btn btn-primary">Senden</button>
         </div>
-        <div id="inspire-results" class="inspire-results"></div>
       </section>
 
       <section id="plan-view" class="hidden">
         <div class="trips-toolbar">
           <button id="add-place-btn" class="btn btn-primary">+ Ort hinzufügen</button>
+        </div>
+        <div id="place-add-container"></div>
+        <div class="view-mode-switch">
+          <button class="view-mode-btn is-active" data-mode="category">Kategorie</button>
+          <button class="view-mode-btn" data-mode="date">Datum</button>
+          <button class="view-mode-btn" data-mode="distance">Entfernung</button>
         </div>
         <div id="place-category-filters" class="category-filters"></div>
         <div id="plan-empty" class="empty-state hidden">
@@ -69,7 +75,6 @@
       </section>
 
       <section id="route-view" class="hidden">
-        <div id="route-category-filters" class="category-filters"></div>
         <div id="route-empty" class="empty-state hidden"></div>
         <div id="route-map" class="route-map hidden"></div>
         <button id="open-full-route-btn" class="btn btn-primary hidden">Gesamte Route in Google Maps öffnen</button>

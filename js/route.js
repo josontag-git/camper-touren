@@ -1,9 +1,9 @@
-// Route-Ansicht: Karte mit den Orten des aktuellen Urlaubs (Marker nach
-// Kategorie eingefärbt, per Filter-Chips ein-/ausblendbar) + Absprung nach
-// Google Maps (einzelner Ort oder gesamte Route als Wegpunkte).
+// Route-Ansicht: Karte mit ALLEN Orten des aktuellen Urlaubs (Marker nach
+// Kategorie eingefärbt) + Absprung nach Google Maps (einzelner Ort oder
+// gesamte Route als Wegpunkte). Liste steht unter der Karte.
 
-import { getState, subscribe, toggleCategoryFilter, isCategoryVisible } from "./state.js";
-import { categoryInfo, ALL_CATEGORY_IDS, renderCategoryFilterChips } from "./categories.js";
+import { getState, subscribe } from "./state.js";
+import { categoryInfo } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
 
 let map = null;
@@ -11,10 +11,6 @@ let markers = [];
 
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-}
-
-function visiblePlaces() {
-  return sortedPlaces().filter((p) => isCategoryVisible(p.category || ""));
 }
 
 function hasCoords(place) {
@@ -123,8 +119,6 @@ function render() {
   const { currentTrip, places } = getState();
   const emptyEl = document.getElementById("route-empty");
   const fullRouteBtn = document.getElementById("open-full-route-btn");
-  const filtersEl = document.getElementById("route-category-filters");
-  filtersEl.innerHTML = "";
 
   if (!currentTrip) {
     emptyEl.classList.remove("hidden");
@@ -144,26 +138,12 @@ function render() {
     return;
   }
 
-  renderCategoryFilterChips(filtersEl, isCategoryVisible, (catId) => {
-    toggleCategoryFilter(ALL_CATEGORY_IDS, catId);
-    render();
-  });
-
-  const shown = visiblePlaces();
-  if (shown.length === 0) {
-    emptyEl.classList.remove("hidden");
-    emptyEl.textContent = "Alle Kategorien ausgeblendet – oben wieder einblenden.";
-    document.getElementById("route-map").classList.add("hidden");
-    document.getElementById("route-list").innerHTML = "";
-    fullRouteBtn.classList.add("hidden");
-    return;
-  }
-
   emptyEl.classList.add("hidden");
-  renderMap(shown);
-  renderList(shown);
+  const all = sortedPlaces();
+  renderMap(all);
+  renderList(all);
 
-  const routeUrl = fullRouteMapsUrl(shown);
+  const routeUrl = fullRouteMapsUrl(all);
   fullRouteBtn.classList.toggle("hidden", !routeUrl);
   fullRouteBtn.onclick = () => routeUrl && window.open(routeUrl, "_blank", "noopener");
 }

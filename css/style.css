@@ -336,6 +336,35 @@ html, body {
   margin-top: 0;
 }
 
+/* Ansichtswechsel (Plan) */
+
+.view-mode-switch {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 14px;
+}
+
+.view-mode-btn {
+  flex: 1;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 8px 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.view-mode-btn.is-active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
 /* Kategorie-Filter-Chips (Plan + Route) */
 
 .category-filters {
@@ -405,10 +434,55 @@ html, body {
   color: var(--color-text);
 }
 
+.inspire-search select {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 8px;
+  font-size: 0.85rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  max-width: 40%;
+}
+
+.inspire-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  min-height: 120px;
+}
+
+.chat-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.chat-bubble-user {
+  align-self: flex-end;
+  background: var(--color-accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble-model {
+  align-self: flex-start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 4px;
+}
+
 .inspire-results {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+#place-add-container:not(:empty) {
+  margin-bottom: 16px;
 }
 
 .inspire-card {
@@ -416,10 +490,46 @@ html, body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 12px 14px;
+  overflow: hidden;
 }
 
 .inspire-card .btn {
   margin-top: 8px;
+}
+
+.inspire-card-photo {
+  width: calc(100% + 28px);
+  margin: -12px -14px 10px;
+  max-width: none;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.inspire-add-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inspire-photo-gallery {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 4px;
+}
+
+.inspire-photo-gallery img {
+  height: 120px;
+  width: 160px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 8px;
+  scroll-snap-align: start;
 }
 
 /* Farbschemata */

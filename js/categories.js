@@ -32,3 +32,19 @@ export function renderCategoryFilterChips(container, isActiveFn, onToggle) {
     container.appendChild(chip);
   });
 }
+
+// Rendert Kategorie-Auswahl-Buttons (Einfachauswahl, z. B. beim Anlegen eines
+// Orts) in `container`. `selectedId` ist die aktuell gewählte Kategorie-ID.
+export function renderCategoryButtons(container, selectedId, onSelect) {
+  container.innerHTML = "";
+  CATEGORIES.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "category-chip";
+    btn.classList.toggle("is-active", selectedId === cat.id);
+    btn.style.setProperty("--chip-color", cat.color);
+    btn.textContent = cat.label;
+    btn.addEventListener("click", () => onSelect(cat.id));
+    container.appendChild(btn);
+  });
+}
