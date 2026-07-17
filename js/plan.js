@@ -83,25 +83,28 @@ function createViewRow(place) {
   return li;
 }
 
-// Bindet Google-Places-Autocomplete an nameField: Auswahl eines Vorschlags
-// füllt Adresse + Koordinaten automatisch (kein manuelles Koordinaten-Tippen
-// mehr nötig, das war fehleranfällig). Ohne Maps-Key bleibt es ein normales
-// Textfeld – kein Fehler, nur kein Autocomplete.
-function attachPlacesAutocomplete(nameField, addressField, latField, lngField) {
-  loadMapsApi().then((maps) => {
-    const autocomplete = new maps.places.Autocomplete(nameField, {
-      fields: ["name", "formatted_address", "geometry"],
-    });
-    autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-      if (place.name) nameField.value = place.name;
-      if (place.formatted_address) addressField.value = place.formatted_address;
-      if (place.geometry?.location) {
-        latField.value = place.geometry.location.lat();
-        lngField.value = place.geometry.location.lng();
+// Fügt ein Google-Places-Suchfeld in `container` ein (neue PlaceAutocompleteElement-
+// API, da die alte google.maps.places.Autocomplete für neue Google-Cloud-Projekte
+// nicht mehr aktivierbar ist). Auswahl eines Vorschlags füllt Name/Adresse/
+// Koordinaten automatisch (kein manuelles Koordinaten-Tippen mehr nötig, das war
+// fehleranfällig). Ohne Maps-Key bleibt das Feld einfach leer/unsichtbar.
+function attachPlacesAutocomplete(container, nameField, addressField, latField, lngField) {
+  loadMapsApi().then(async (maps) => {
+    await maps.importLibrary("places");
+    const widget = new maps.places.PlaceAutocompleteElement({});
+    widget.classList.add("place-autocomplete-widget");
+    container.appendChild(widget);
+    widget.addEventListener("gmp-select", async ({ placePrediction }) => {
+      const place = placePrediction.toPlace();
+      await place.fetchFields({ fields: ["displayName", "formattedAddress", "location"] });
+      if (place.displayName) nameField.value = place.displayName;
+      if (place.formattedAddress) addressField.value = place.formattedAddress;
+      if (place.location) {
+        latField.value = place.location.lat();
+        lngField.value = place.location.lng();
       }
     });
-  }).catch(() => { /* kein Maps-Key -> normales Textfeld ohne Autocomplete */ });
+  }).catch(() => { /* kein Maps-Key -> kein Suchfeld, manuelle Eingabe bleibt möglich */ });
 }
 
 function createFormRow(place) {
@@ -111,9 +114,12 @@ function createFormRow(place) {
 
   const prefill = !place && prefillFields ? prefillFields : null;
 
+  const searchContainer = document.createElement("div");
+  searchContainer.className = "place-search-container";
+
   const nameField = document.createElement("input");
   nameField.type = "text";
-  nameField.placeholder = "Name des Orts (Google-Suche)";
+  nameField.placeholder = "Name des Orts";
   nameField.value = place?.name || prefill?.name || "";
 
   const categoryField = document.createElement("select");
@@ -154,7 +160,7 @@ function createFormRow(place) {
   lngField.placeholder = "Längengrad (optional)";
   lngField.value = place?.lng ?? "";
 
-  attachPlacesAutocomplete(nameField, addressField, latField, lngField);
+  attachPlacesAutocomplete(searchContainer, nameField, addressField, latField, lngField);
 
   const noteField = document.createElement("input");
   noteField.type = "text";
@@ -165,7 +171,7 @@ function createFormRow(place) {
 
   const fieldsWrap = document.createElement("div");
   fieldsWrap.className = "trip-edit-fields";
-  fieldsWrap.append(nameField, categoryField, arrivalField, departureField, addressField, latField, lngField, noteField);
+  fieldsWrap.append(searchContainer, nameField, categoryField, arrivalField, departureField, addressField, latField, lngField, noteField);
 
   const actions = document.createElement("div");
   actions.className = "trip-edit-actions";
