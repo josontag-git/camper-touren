@@ -7,16 +7,20 @@ Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 Oben wählt man den Urlaub (Picker + Anlegen/Bearbeiten/Löschen). Für den
 gewählten Urlaub gibt es drei Bereiche plus Einstellungen (Bottom-Nav):
 
-- **Inspire** – Ortsvorschläge per Gemini (Google-Search-Grounding). Braucht
-  einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Suche.
-- **Plan** – Orte anlegen/bearbeiten/löschen, nach Kategorie gruppiert
+- **Inspire** – Chat mit Gemini (Google-Search-Grounding, Mehrturn-Konversation)
+  für kreative Ideen zum Urlaub; Gemini stellt bei Bedarf auch Rückfragen.
+  Braucht einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Chat.
+  Keine strukturierte Orts-Suche hier – das macht Plan.
+- **Plan** – Orte suchen (volle Google-Places-Suche: Umkreis um den aktuellen
+  Standort, Foto, Sterne-Bewertung + Link zur Maps-Seite, Kategorie per Button
+  wählen) oder manuell eintragen, nach Kategorie gruppiert
   (Camping/Sport/Sightseeing/Restaurant/Sonstiges/Ohne Kategorie) mit
-  Filter-Chips zum Ein-/Ausblenden, per Drag&Drop innerhalb einer Kategorie
-  sortierbar (Reihenfolge wird im Sheet gespeichert).
-- **Route** – Karte (Google Maps JavaScript API) mit den Orten, die
-  Koordinaten haben – Marker nach Kategorie eingefärbt, gleiche Filter-Chips
-  wie in Plan –, plus Absprung einzelner Orte oder der gesamten Route nach
-  Google Maps.
+  Filter-Chips zum Ein-/Ausblenden. Umschaltbar zwischen Ansicht nach
+  Kategorie (mit Drag&Drop-Sortierung), nach Datum, oder nach aktueller
+  Entfernung (Standortabfrage).
+- **Route** – Karte (Google Maps JavaScript API) mit ALLEN Orten des Urlaubs,
+  die Koordinaten haben – Marker nach Kategorie eingefärbt –, Liste darunter,
+  plus Absprung einzelner Orte oder der gesamten Route nach Google Maps.
 - **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema.
 
 Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt Urlaube/Orte neu.
@@ -27,7 +31,9 @@ Dateien:
 - `js/state.js` – kleiner Pub/Sub-Store (aktueller Urlaub, seine Orte, Kategorie-Filter)
 - `js/settings.js` – localStorage-Einstellungen (Apps-Script-URL, Gemini-Key)
 - `js/theme.js` – Farbschema-Verwaltung
-- `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Filter-Chip-Rendering
+- `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Chip-Rendering
+- `js/maps-loader.js` – lädt die Google Maps JavaScript API einmalig nach
+  (gemeinsam genutzt von Route für die Karte und Plan für die Orts-Suche)
 - `js/trips.js`, `js/plan.js`, `js/route.js`, `js/inspire.js` – die vier Bereiche
 - `js/pull-to-refresh.js` – Pull-to-Refresh-Geste
 - `js/api.js` – Client für die Google-Apps-Script-Web-App (Trips/Places CRUD)
@@ -42,9 +48,11 @@ gecacht (`js/api.js`) – offline zeigt die App den zuletzt geladenen Stand
 statt nur einen Fehler. Beim Löschen eines Urlaubs werden dessen Orte
 automatisch mitgelöscht (kein manuelles Aufräumen nötig).
 
-Noch NICHT enthalten: echte Places-Autocomplete/-Suche (Inspire liefert
-Gemini-Textvorschläge, keine strukturierten Google-Places-Ergebnisse mit
-garantierten Koordinaten).
+Die Places-Suche in Plan nutzt die Places API (New) – dafür müssen im
+Google-Cloud-Projekt neben der Maps JavaScript API auch **Places API (New)**
+aktiviert und beim API-Key sowohl als Anwendungs- (HTTP-Referrer der
+GitHub-Pages-Domain) als auch als API-Einschränkung (Places API (New) zur
+Liste hinzufügen) freigegeben sein.
 
 ## Technische Entscheidung: Apps Script statt Google-Cloud-OAuth
 
