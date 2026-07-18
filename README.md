@@ -20,6 +20,29 @@ Nach einer UX-Durchsicht behoben:
   übersetzt; das technische Detail steht weiterhin per `console.error` in
   der Browser-Konsole.
 
+## UX-Nacharbeit (nach Milestone 8)
+
+- **Fotogalerie im Ortsdetails-Modal reparlert:** `.inspire-photo-gallery`
+  (genutzt vom Detail-Modal und von Plans Suchergebnis-Detailkarte) sprengte
+  als Flex-Item ohne `min-width: 0` ihre Panel-Breite (Flexbox-Item behält
+  ohne diese Angabe seine intrinsische Content-Breite statt zu schrumpfen) –
+  Bilder liefen dadurch über das Modal-Layout hinaus statt intern zu
+  scrollen. Fix in `css/style.css`.
+- **Inspire-Buttons mit Icons:** „Zu Plan hinzufügen"/„Könnte interessant
+  sein" bekommen ein „✓", der jeweilige Rückgängig-Zustand zeigt jetzt
+  „✕ Entfernen" statt des reinen Statustexts „Hinzugefügt"/„Vorgemerkt" –
+  macht deutlicher, dass ein erneuter Klick den Ort wieder entfernt. „Neue
+  Inspiration" ist jetzt ein gefüllter Button („Neue Inspiration starten")
+  statt eines reinen Text-Links.
+- **Plan startet standardmäßig in der Datum-Ansicht** (statt Kategorie).
+- **Karte beim Ort-Hinzufügen:** Suchergebnisse mit Koordinaten zeigen die
+  Karte jetzt automatisch (statt hinter einem Button versteckt); jeder
+  Marker öffnet per Klick ein InfoWindow mit Foto/Name/Sterne und einem
+  „Zu Plan hinzufügen"-Button, der den Ort direkt von der Karte aus speichert
+  (ohne Kategorie/Termine – für die bleibt der bestehende Listen-Flow mit
+  Detailkarte). Die bisherige Ergebnisliste mit Kategorie-/Datumsauswahl
+  bleibt unverändert bestehen, die Karte ist ein zusätzlicher, schnellerer Weg.
+
 ## Stand: Milestone 8 – Wunschliste, Header mit Tourname, Kategorien geräteübergreifend
 
 Der Header zeigt den Namen des gewählten Urlaubs (statt "Camper Touren")

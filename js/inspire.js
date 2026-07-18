@@ -245,7 +245,7 @@ function buildSuggestionCard(suggestion) {
 
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary";
-  addBtn.textContent = currentStatus === "" ? "Hinzugefügt" : "Zu Plan hinzufügen";
+  addBtn.textContent = currentStatus === "" ? "✕ Entfernen" : "✓ Zu Plan hinzufügen";
   addBtn.addEventListener("click", () => {
     if (currentStatus === "") removeSuggestion(suggestion, addBtn);
     else saveSuggestion(suggestion, place, "", addBtn);
@@ -273,7 +273,7 @@ function buildSuggestionCard(suggestion) {
 
     const interestBtn = document.createElement("button");
     interestBtn.className = "btn btn-ghost-dark";
-    interestBtn.textContent = currentStatus === "interested" ? "Vorgemerkt" : "Könnte interessant sein";
+    interestBtn.textContent = currentStatus === "interested" ? "✕ Entfernen" : "✓ Könnte interessant sein";
     interestBtn.addEventListener("click", () => {
       if (currentStatus === "interested") removeSuggestion(suggestion, interestBtn);
       else saveSuggestion(suggestion, place, "interested", interestBtn);

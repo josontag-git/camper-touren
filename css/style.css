@@ -639,6 +639,42 @@ html, body {
   margin-bottom: 14px;
 }
 
+/* InfoWindow-Inhalt beim Klick auf einen Suchergebnis-Marker (Plan) */
+
+.map-info-window {
+  min-width: 160px;
+  max-width: 200px;
+  font-family: inherit;
+}
+
+.map-info-photo {
+  display: block;
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.map-info-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--color-text);
+}
+
+.map-info-rating {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.map-info-btn {
+  margin-top: 8px;
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 8px 10px;
+}
+
 #open-full-route-btn {
   width: 100%;
   margin-bottom: 14px;
@@ -832,6 +868,8 @@ html, body {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding-bottom: 4px;
+  min-width: 0;
+  width: 100%;
 }
 
 .inspire-photo-gallery img {
@@ -861,6 +899,7 @@ html, body {
   max-width: 560px;
   max-height: 85vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--color-surface);
   color: var(--color-text);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;

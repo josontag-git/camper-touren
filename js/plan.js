@@ -24,7 +24,7 @@ const RADIUS_OPTIONS = [
 let onStatus = () => {};
 let editingPlaceId = null; // Bearbeiten eines bestehenden Orts inline in der Liste
 let pointerDrag = null; // aktiver Pointer-Drag zum Sortieren, siehe startPointerDrag()
-let viewMode = "category"; // "category" | "date" | "distance"
+let viewMode = "date"; // "category" | "date" | "distance"
 let userPosition = null; // { lat, lng }, für viewMode "distance"
 
 let addMode = null; // null | "search" | "manual"
@@ -659,9 +659,47 @@ function renderSearchResults(container) {
   container.appendChild(resultsEl);
 }
 
+// Inhalt des InfoWindow, das beim Klick auf einen Marker aufgeht – Foto/Name/
+// Sterne plus ein Button, der den Ort direkt von der Karte aus speichert
+// (gleicher Pfad wie der Listen-Flow, nur ohne Kategorie/Termine).
+function buildMapInfoContent(place, index) {
+  const wrap = document.createElement("div");
+  wrap.className = "map-info-window";
+
+  const photo = place.photos?.[0];
+  if (photo) {
+    const img = document.createElement("img");
+    img.className = "map-info-photo";
+    img.src = photoUrl(photo.name, 240);
+    img.alt = "";
+    wrap.appendChild(img);
+  }
+
+  const title = document.createElement("div");
+  title.className = "map-info-title";
+  title.textContent = place.displayName?.text || "(ohne Namen)";
+  wrap.appendChild(title);
+
+  if (place.rating) {
+    const rating = document.createElement("div");
+    rating.className = "map-info-rating";
+    rating.textContent = `${starRating(place.rating)} ${place.rating}`;
+    wrap.appendChild(rating);
+  }
+
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "btn btn-primary map-info-btn";
+  addBtn.textContent = "✓ Zu Plan hinzufügen";
+  addBtn.addEventListener("click", () => saveSearchResult(place, index, { arrivalDate: "", departureDate: "" }, addBtn));
+  wrap.appendChild(addBtn);
+
+  return wrap;
+}
+
 async function renderResultsMap(mapEl) {
-  const withCoords = searchResults.filter((p) => p.location);
-  if (withCoords.length === 0) {
+  const indexed = searchResults.map((p, i) => ({ p, i })).filter(({ p }) => p.location);
+  if (indexed.length === 0) {
     onStatus("Keine der Suchergebnisse hat Koordinaten.");
     return;
   }
@@ -670,16 +708,24 @@ async function renderResultsMap(mapEl) {
     mapEl.classList.remove("hidden");
     resultsMap = new maps.Map(mapEl, {
       zoom: 6,
-      center: { lat: withCoords[0].location.latitude, lng: withCoords[0].location.longitude },
+      center: { lat: indexed[0].p.location.latitude, lng: indexed[0].p.location.longitude },
     });
+    const infoWindow = new maps.InfoWindow();
     resultsMarkers.forEach((m) => m.setMap(null));
-    resultsMarkers = withCoords.map((p) => new maps.Marker({
-      position: { lat: p.location.latitude, lng: p.location.longitude },
-      map: resultsMap,
-      title: p.displayName?.text || "",
-    }));
+    resultsMarkers = indexed.map(({ p, i }) => {
+      const marker = new maps.Marker({
+        position: { lat: p.location.latitude, lng: p.location.longitude },
+        map: resultsMap,
+        title: p.displayName?.text || "",
+      });
+      marker.addListener("click", () => {
+        infoWindow.setContent(buildMapInfoContent(p, i));
+        infoWindow.open({ map: resultsMap, anchor: marker });
+      });
+      return marker;
+    });
     const bounds = new maps.LatLngBounds();
-    withCoords.forEach((p) => bounds.extend({ lat: p.location.latitude, lng: p.location.longitude }));
+    indexed.forEach(({ p }) => bounds.extend({ lat: p.location.latitude, lng: p.location.longitude }));
     resultsMap.fitBounds(bounds);
   } catch (err) {
     onStatus(friendlyError(err));
@@ -710,15 +756,22 @@ function renderSearchUI(container) {
   searchRow.append(queryField, radiusSelect, searchBtn);
   container.appendChild(searchRow);
 
+  const hasMapResults = searchResults.some((p) => p.location);
+
   const mapBtn = document.createElement("button");
   mapBtn.className = "btn btn-ghost-dark";
-  mapBtn.textContent = "Auf Karte anzeigen";
+  mapBtn.textContent = hasMapResults ? "Karte ausblenden" : "Auf Karte anzeigen";
   mapBtn.classList.toggle("hidden", searchResults.length === 0);
   container.appendChild(mapBtn);
 
   const mapEl = document.createElement("div");
   mapEl.className = "route-map hidden";
   container.appendChild(mapEl);
+
+  // Karte erscheint automatisch mit den Ergebnissen (statt hinter dem
+  // Button versteckt) – Marker sind klickbar und lassen den Ort direkt
+  // von der Karte aus hinzufügen, siehe buildMapInfoContent().
+  if (hasMapResults) renderResultsMap(mapEl);
 
   mapBtn.addEventListener("click", async () => {
     const wasHidden = mapEl.classList.contains("hidden");
