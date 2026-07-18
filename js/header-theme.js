@@ -1,25 +1,30 @@
-// Header-Hintergrundmotiv: feste Auswahl (CSS-Gradients, keine echten Fotos –
-// dafür gibt es hier keine lizenzfreie Bildquelle), wählbar in den
+// Header-Hintergrundmotiv: feste Auswahl lizenzfreier Fotos (vom Nutzer
+// bereitgestellt, zugeschnitten unter headers/<id>.jpg), wählbar in den
 // Einstellungen. Auswahl wird als data-header-theme auf .app-header gesetzt,
-// die eigentlichen Gradients stehen in css/style.css.
+// die eigentlichen Bild-URLs + Abdunklung stehen in css/style.css.
 
 const STORAGE_HEADER_THEME = "campingAppHeaderTheme";
 
 export const HEADER_THEMES = [
   { id: "none", label: "Kein Bild (Farbfläche)" },
-  { id: "sea-turquoise", label: "Meer (Türkis/Karibik)" },
-  { id: "sea-deep", label: "Meer (Tiefblau/Atlantik)" },
-  { id: "sea-sunset", label: "Meer bei Sonnenuntergang" },
-  { id: "mountains", label: "Berge" },
-  { id: "forest", label: "Wald" },
+  { id: "beach", label: "Strand (Karibik)" },
   { id: "desert", label: "Wüste" },
-  { id: "stars", label: "Sternenhimmel" },
+  { id: "lake", label: "Bergsee" },
+  { id: "mountains", label: "Berge" },
+  { id: "skyline", label: "Skyline bei Nacht" },
+  { id: "sunset", label: "Sonnenuntergang" },
+  { id: "underwater", label: "Unterwasserwelt" },
 ];
 
-const DEFAULT_HEADER_THEME = "sea-turquoise";
+const DEFAULT_HEADER_THEME = "beach";
 
 export function getHeaderTheme() {
-  return localStorage.getItem(STORAGE_HEADER_THEME) || DEFAULT_HEADER_THEME;
+  const stored = localStorage.getItem(STORAGE_HEADER_THEME);
+  // Fängt u. a. die alten Farbverlauf-Theme-IDs vor der Umstellung auf
+  // echte Fotos ab (sonst bliebe der Header leer/nur abgedunkelt, da
+  // css/style.css für diese IDs keine Regel mehr hat).
+  const isValid = stored && HEADER_THEMES.some((t) => t.id === stored);
+  return isValid ? stored : DEFAULT_HEADER_THEME;
 }
 
 export function setHeaderTheme(id) {

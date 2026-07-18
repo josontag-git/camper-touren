@@ -3,6 +3,7 @@
 import { createTrip, updateTrip, deleteTrip, deletePlace, getPlaces } from "./api.js";
 import { getState, subscribe, setTrips, setPlaces, setCurrentTripId } from "./state.js";
 import { friendlyError } from "./errors.js";
+import { attachDragHandle } from "./drag-reorder.js";
 
 const NEW_TRIP_VALUE = "__new__";
 
@@ -14,15 +15,21 @@ function formatDateRange(trip) {
   return trip.startDate || trip.endDate || "Kein Datum";
 }
 
+// Sortierung nach "order" (manuell per Drag&Drop gesetzt); Startdatum bleibt
+// Tie-Breaker, solange noch nicht manuell sortiert wurde (order dann bei
+// allen 0/gleich, stabile Sortierung würde sonst die Sheet-Reihenfolge zeigen).
+function sortedTrips(trips) {
+  return trips.slice().sort((a, b) =>
+    Number(a.order || 0) - Number(b.order || 0) || (a.startDate || "").localeCompare(b.startDate || "")
+  );
+}
+
 function renderPicker() {
   const { trips, currentTripId, currentTrip } = getState();
   const picker = document.getElementById("trip-picker");
   picker.innerHTML = "";
 
-  trips
-    .slice()
-    .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""))
-    .forEach((trip) => {
+  sortedTrips(trips).forEach((trip) => {
       const opt = document.createElement("option");
       opt.value = trip.id;
       opt.textContent = trip.name || "(ohne Namen)";
@@ -113,8 +120,10 @@ async function onSaveTrip(existingTrip, fields, saveBtn) {
   saveBtn.disabled = true;
   saveBtn.textContent = "Speichert …";
   const now = new Date().toISOString();
+  const { trips } = getState();
   const record = {
     id: existingTrip?.id || crypto.randomUUID(),
+    order: existingTrip?.order ?? trips.length,
     ...fields,
     createdAt: existingTrip?.createdAt || now,
     updatedAt: now,
@@ -126,7 +135,6 @@ async function onSaveTrip(existingTrip, fields, saveBtn) {
     } else {
       await createTrip(record);
     }
-    const { trips } = getState();
     const nextTrips = existingTrip
       ? trips.map((t) => (t.id === record.id ? record : t))
       : [...trips, record];
@@ -194,6 +202,7 @@ let settingsConfirmDeleteId = null;
 function renderSettingsTripRow(trip) {
   const li = document.createElement("li");
   li.className = "trip-item";
+  li.dataset.id = trip.id;
 
   const info = document.createElement("div");
   info.className = "trip-info";
@@ -248,7 +257,17 @@ function renderSettingsTripRow(trip) {
   delBtn.setAttribute("aria-label", "Löschen");
   delBtn.addEventListener("click", () => { settingsConfirmDeleteId = trip.id; renderSettingsTrips(); });
 
-  li.append(info, editBtn, delBtn);
+  const handle = document.createElement("span");
+  handle.className = "place-drag-handle";
+  handle.textContent = "⠿";
+  handle.setAttribute("role", "button");
+  handle.setAttribute("aria-label", "Ziehen zum Sortieren");
+  attachDragHandle(handle, li, (draggedLi) => {
+    const listEl = draggedLi.parentElement;
+    return [...listEl.querySelectorAll(".trip-item")].filter((el) => el !== draggedLi);
+  }, onReorderTrips);
+
+  li.append(handle, info, editBtn, delBtn);
   return li;
 }
 
@@ -320,6 +339,27 @@ function renderSettingsTripForm(trip) {
   return li;
 }
 
+async function onReorderTrips(sourceId, targetId) {
+  const ordered = sortedTrips(getState().trips);
+  const fromIndex = ordered.findIndex((t) => t.id === sourceId);
+  const toIndex = ordered.findIndex((t) => t.id === targetId);
+  if (fromIndex === -1 || toIndex === -1) return;
+
+  const [moved] = ordered.splice(fromIndex, 1);
+  ordered.splice(toIndex, 0, moved);
+  const reindexed = ordered.map((t, i) => ({ ...t, order: i }));
+  setTrips(reindexed);
+  // Nacheinander statt parallel: Apps Script hat kein Locking auf
+  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
+  // dasselbe Sheet können sich gegenseitig überschreiben.
+  try {
+    for (const t of reindexed) await updateTrip(t);
+  } catch (err) {
+    onStatus(`Fehler beim Sortieren: ${friendlyError(err)}`);
+    console.error(err);
+  }
+}
+
 function renderSettingsTrips() {
   const list = document.getElementById("settings-trips-list");
   if (!list) return;
@@ -332,12 +372,9 @@ function renderSettingsTrips() {
     list.appendChild(empty);
     return;
   }
-  trips
-    .slice()
-    .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""))
-    .forEach((trip) => {
-      list.appendChild(trip.id === settingsEditingId ? renderSettingsTripForm(trip) : renderSettingsTripRow(trip));
-    });
+  sortedTrips(trips).forEach((trip) => {
+    list.appendChild(trip.id === settingsEditingId ? renderSettingsTripForm(trip) : renderSettingsTripRow(trip));
+  });
 }
 
 export function initTripsSettings() {

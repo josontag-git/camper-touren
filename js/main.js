@@ -66,6 +66,20 @@ function initChangelogBanner() {
   });
 }
 
+// Meldet den Service Worker ab und löscht alle Caches, damit sich das Gerät
+// beim nächsten Laden garantiert den aktuellen App-Shell-Stand vom Netz holt
+// (statt evtl. an einer alten, hartnäckig gecachten Version hängen zu bleiben).
+async function clearAppCache() {
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.unregister()));
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
+  } finally {
+    location.reload();
+  }
+}
+
 function setStatus(text) {
   document.getElementById("status-message-text").textContent = text;
   document.getElementById("status-message").classList.toggle("hidden", !text);
@@ -139,6 +153,8 @@ function initSettingsUI() {
     status.textContent = "Gespeichert.";
     loadTrips();
   });
+
+  document.getElementById("clear-cache-btn").addEventListener("click", clearAppCache);
 
   initTripsSettings();
   const categoriesContainer = document.getElementById("settings-categories-container");

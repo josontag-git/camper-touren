@@ -254,7 +254,7 @@ function buildSuggestionCard(suggestion) {
 
   if (place.id) {
     const detailsBtn = document.createElement("button");
-    detailsBtn.className = "btn btn-ghost-dark";
+    detailsBtn.className = "btn btn-subtle";
     detailsBtn.textContent = "Details";
     detailsBtn.addEventListener("click", () => openPlaceDetailModal({
       name: place.displayName?.text || suggestion.name,
@@ -272,7 +272,7 @@ function buildSuggestionCard(suggestion) {
     secondaryActions.className = "inspire-card-actions inspire-card-actions-secondary";
 
     const interestBtn = document.createElement("button");
-    interestBtn.className = "btn btn-ghost-dark";
+    interestBtn.className = "btn btn-subtle";
     interestBtn.textContent = currentStatus === "interested" ? "✕ Entfernen" : "✓ Könnte interessant sein";
     interestBtn.addEventListener("click", () => {
       if (currentStatus === "interested") removeSuggestion(suggestion, interestBtn);
@@ -323,7 +323,10 @@ function renderConversation() {
       container.appendChild(chipRow);
     }
 
-    if (index === firstModelIndex) {
+    // Nur direkt nach der allerersten Suche zeigen, nicht dauerhaft bei
+    // jedem Render (sonst bliebe die Zeile für immer sichtbar, da
+    // firstModelIndex über die gesamte Konversation fix bleibt).
+    if (index === firstModelIndex && conversation.length <= 2) {
       const hintLine = document.createElement("p");
       hintLine.className = "inspire-hint-line";
       hintLine.textContent = `Beispiel: ${EXAMPLE_PLACEHOLDER}`;

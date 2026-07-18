@@ -56,6 +56,33 @@ Nach einer UX-Durchsicht behoben:
   Detailkarte). Die bisherige Ergebnisliste mit Kategorie-/Datumsauswahl
   bleibt unverändert bestehen, die Karte ist ein zusätzlicher, schnellerer Weg.
 
+## Stand: Milestone 10 – Cache-Reset, Zoom-Sperre, echte Header-Fotos, sortierbare Touren/Kategorien
+
+- **Cache-Löschen-Button** in den Einstellungen: meldet den Service Worker
+  ab und löscht alle Caches, danach automatischer Reload – hilfreich, wenn
+  ein Gerät trotz neuer `CACHE_VERSION` noch am alten Stand hängt.
+- **Kein Browser-Zoom mehr:** Viewport-Meta um `maximum-scale=1,
+  user-scalable=no` ergänzt (Pinch-Zoom), `touch-action: manipulation` auf
+  `html, body` (Doppel-Tap-Zoom).
+- **Echte Header-Fotos statt Farbverläufe** (siehe „Header-Hintergrund"
+  oben) – 7 vom Nutzer bereitgestellte, lizenzfreie Fotos statt der
+  bisherigen CSS-Gradients.
+- **Tourenauswahl-Icon im Header verfeinert:** dünnerer, kleinerer Chevron
+  (`stroke-width` 2 → 1.5, feste Größe 18×18), passt jetzt besser zu den
+  Text-Glyphen ✎/＋ daneben.
+- **Touren und Kategorien per Drag&Drop sortierbar** (Einstellungen): neues
+  gemeinsames Modul `js/drag-reorder.js` (extrahiert aus der bisherigen
+  Orte-Sortierung in `js/plan.js`, jetzt an drei Stellen wiederverwendet).
+  Reihenfolge landet im neuen `order`-Feld von `Trips`/`Categories` – siehe
+  Datenmodell unten, **erfordert ein Code.gs-Redeploy** (wie bei den
+  Kategorien in Milestone 8); ohne Redeploy funktioniert das Sortieren
+  weiterhin, bleibt aber nur für die aktuelle Sitzung erhalten statt
+  geräteübergreifend gespeichert zu werden.
+- **Inspire:** „Details"/„Könnte interessant sein" jetzt als dezent
+  eingefärbte Pillen (`.btn-subtle`) statt reinem Text; die
+  „Beispiel: …"-Zeile verschwindet nach der ersten Antwort, statt bei jeder
+  weiteren Nachricht erneut aufzutauchen.
+
 ## Stand: Milestone 8 – Wunschliste, Header mit Tourname, Kategorien geräteübergreifend
 
 Der Header zeigt den Namen des gewählten Urlaubs (statt "Camper Touren")
@@ -271,12 +298,18 @@ CSS-Variablen pro `[data-color-theme="…"]` in `css/style.css`.
 
 ## Header-Hintergrund
 
-Unter **Einstellungen → Header-Hintergrund** wählbar: kein Bild, drei
-Meer-Varianten (Türkis, Tiefblau, Sonnenuntergang), Berge, Wald, Wüste,
-Sternenhimmel. Reine `linear-/radial-gradient`-Motive in `css/style.css`
-(`.app-header[data-header-theme="…"]`) statt echter Fotos – dafür gibt es
-keine lizenzfreie Bildquelle im Projekt. Auswahl in `localStorage`
-(`js/header-theme.js`), unabhängig vom Farbschema.
+Unter **Einstellungen → Header-Hintergrund** wählbar: kein Bild, Strand
+(Karibik), Wüste, Bergsee, Berge, Skyline bei Nacht, Sonnenuntergang,
+Unterwasserwelt – echte, lizenzfreie Fotos unter `headers/<theme-id>.jpg`
+(Quelldateien in `background/`, mit PIL motiv-optimiert zugeschnitten und
+auf max. 1600px Breite verkleinert). Eingebunden über
+`.app-header[data-header-theme="…"]` in `css/style.css`
+(`background-image: url("../headers/<id>.jpg")` + ein aus dem Foto
+gemittelter `background-color`-Fallback für die Ladezeit). Auswahl in
+`localStorage` (`js/header-theme.js`), unabhängig vom Farbschema. Weiteres
+Foto ergänzen: Datei nach `headers/<neue-id>.jpg` legen und einen Eintrag
+in `HEADER_THEMES` (`js/header-theme.js`) + eine passende CSS-Regel
+ergänzen.
 
 ## Lokal starten
 
@@ -323,9 +356,9 @@ Wird beim ersten Zugriff automatisch angelegt, falls die Tabs noch fehlen;
 fehlende Kopfzeilen-Spalten werden beim nächsten Zugriff automatisch ergänzt
 (additive Migration in `getOrCreateSheet`, bestehende Zeilen bleiben unberührt):
 
-- `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt`
+- `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt, order`
 - `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt, photoRef, rating, userRatingCount, status`
-- `Categories`: `id, label, color`
+- `Categories`: `id, label, color, order`
 
 `photoRef`/`rating`/`userRatingCount` werden nur bei Orten aus einer
 Places-Suche befüllt (Plan-Suche oder Inspire-Vorschau) – manuell angelegte

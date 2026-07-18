@@ -24,6 +24,7 @@ html, body {
   color: var(--color-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
 }
 
 #app {
@@ -107,42 +108,44 @@ html, body {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
-/* Header-Hintergrundmotive (feste Auswahl, css/js/header-theme.js) */
+/* Header-Hintergrundmotive (feste Auswahl lizenzfreier Fotos,
+   css/js/header-theme.js, Bilddateien unter headers/<id>.jpg).
+   background-color je Motiv ist der gemittelte Bildton als Lade-/
+   Fallback-Farbe (falls das Foto noch nicht geladen ist). */
 
-.app-header[data-header-theme="sea-turquoise"] {
-  background-image: linear-gradient(180deg, #05445e 0%, #189ab4 45%, #75e6da 100%);
-}
-
-.app-header[data-header-theme="sea-deep"] {
-  background-image: linear-gradient(180deg, #011126 0%, #073b6b 50%, #1c6ea4 100%);
-}
-
-.app-header[data-header-theme="sea-sunset"] {
-  background-image: linear-gradient(180deg, #3a0ca3 0%, #d7509f 45%, #ff9f5a 100%);
-}
-
-.app-header[data-header-theme="mountains"] {
-  background-image: linear-gradient(180deg, #1e3c53 0%, #4b6584 55%, #a5b1c2 100%);
-}
-
-.app-header[data-header-theme="forest"] {
-  background-image: linear-gradient(180deg, #0b3d2e 0%, #40916c 55%, #95d5b2 100%);
+.app-header[data-header-theme="beach"] {
+  background-image: url("../headers/beach.jpg");
+  background-color: #9cbbc9;
 }
 
 .app-header[data-header-theme="desert"] {
-  background-image: linear-gradient(180deg, #7f5539 0%, #ddb892 55%, #ffe8d6 100%);
+  background-image: url("../headers/desert.jpg");
+  background-color: #ab7e57;
 }
 
-.app-header[data-header-theme="stars"] {
-  background-image:
-    radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
-    radial-gradient(1.5px 1.5px at 35% 55%, #fff, transparent),
-    radial-gradient(1px 1px at 55% 20%, #fff, transparent),
-    radial-gradient(1.5px 1.5px at 75% 45%, #fff, transparent),
-    radial-gradient(1px 1px at 90% 65%, #fff, transparent),
-    radial-gradient(1.5px 1.5px at 25% 80%, #fff, transparent),
-    radial-gradient(1px 1px at 65% 85%, #fff, transparent),
-    linear-gradient(180deg, #03071e 0%, #0b132b 60%, #1c2541 100%);
+.app-header[data-header-theme="lake"] {
+  background-image: url("../headers/lake.jpg");
+  background-color: #628294;
+}
+
+.app-header[data-header-theme="mountains"] {
+  background-image: url("../headers/mountains.jpg");
+  background-color: #7ea9d0;
+}
+
+.app-header[data-header-theme="skyline"] {
+  background-image: url("../headers/skyline.jpg");
+  background-color: #867eb1;
+}
+
+.app-header[data-header-theme="sunset"] {
+  background-image: url("../headers/sunset.jpg");
+  background-color: #905a36;
+}
+
+.app-header[data-header-theme="underwater"] {
+  background-image: url("../headers/underwater.jpg");
+  background-color: #4c4d4b;
 }
 
 /* Changelog-Banner (klebt direkt unter dem Header, siehe .app-sticky) */
@@ -423,6 +426,13 @@ html, body {
   font-weight: 600;
 }
 
+.btn-subtle {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  color: var(--color-accent);
+  font-weight: 600;
+  box-shadow: none;
+}
+
 .settings-view {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -467,6 +477,9 @@ html, body {
 .header-trip-actions .trip-icon-btn {
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-trip-actions .trip-icon-btn:disabled {

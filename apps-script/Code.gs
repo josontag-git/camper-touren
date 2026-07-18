@@ -4,7 +4,7 @@
 // Einstellungen der App (Zahnrad-Symbol), nicht in den Code.
 
 const SHEET_TRIPS = "Trips";
-const TRIPS_HEADERS = ["id", "name", "startDate", "endDate", "note", "createdAt", "updatedAt"];
+const TRIPS_HEADERS = ["id", "name", "startDate", "endDate", "note", "createdAt", "updatedAt", "order"];
 
 const SHEET_PLACES = "Places";
 const PLACES_HEADERS = [
@@ -14,7 +14,7 @@ const PLACES_HEADERS = [
 ];
 
 const SHEET_CATEGORIES = "Categories";
-const CATEGORIES_HEADERS = ["id", "label", "color"];
+const CATEGORIES_HEADERS = ["id", "label", "color", "order"];
 
 const ENTITIES = {
   trip: [SHEET_TRIPS, TRIPS_HEADERS],

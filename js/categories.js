@@ -5,6 +5,7 @@
 
 import { getState, setCategories } from "./state.js";
 import { getCategoriesData, createCategory, updateCategory, deleteCategory } from "./api.js";
+import { attachDragHandle } from "./drag-reorder.js";
 
 const LEGACY_STORAGE_KEY = "campingAppCategories"; // vor Milestone 8, nur für die einmalige Migration gelesen
 
@@ -26,8 +27,11 @@ export const UNCATEGORIZED = { id: "", label: "Noch nicht eingeplante Orte", col
 // Zustand bleiben Kategorien wie vor Milestone 8 lokal in localStorage.
 let categoriesSynced = true;
 
+// Sortierung nach "order" (manuell per Drag&Drop in den Einstellungen
+// gesetzt) – zentral hier, damit Filter-Chips/Auswahl-Buttons/Settings-Liste
+// überall dieselbe Reihenfolge zeigen.
 export function getCategories() {
-  return getState().categories;
+  return getState().categories.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 }
 
 // Einmaliges Laden beim App-Start (main.js): holt Kategorien aus dem Sheet;
@@ -76,7 +80,7 @@ export async function addCategory(label, color) {
   if (!id) return false;
   const categories = getCategories();
   if (categories.some((c) => c.id.toLowerCase() === id.toLowerCase())) return false;
-  const record = { id, label: id, color };
+  const record = { id, label: id, color, order: categories.length };
   const next = [...categories, record];
   if (categoriesSynced) await createCategory(record); else saveLegacyCategories(next);
   setCategories(next);
@@ -86,7 +90,8 @@ export async function addCategory(label, color) {
 export async function renameCategory(id, newLabel, newColor) {
   const trimmed = newLabel.trim();
   if (!trimmed) return false;
-  const record = { id: trimmed, label: trimmed, color: newColor };
+  const existing = getCategories().find((c) => c.id === id);
+  const record = { id: trimmed, label: trimmed, color: newColor, order: existing?.order ?? 0 };
   const next = getCategories().map((c) => (c.id === id ? record : c));
   if (categoriesSynced) {
     // Die id ist aktuell vom Label abgeleitet -> bei Namensänderung ändert
@@ -109,6 +114,23 @@ export async function removeCategory(id) {
   const next = getCategories().filter((c) => c.id !== id);
   if (categoriesSynced) await deleteCategory(id); else saveLegacyCategories(next);
   setCategories(next);
+}
+
+async function onReorderCategories(sourceId, targetId) {
+  const ordered = getCategories();
+  const fromIndex = ordered.findIndex((c) => c.id === sourceId);
+  const toIndex = ordered.findIndex((c) => c.id === targetId);
+  if (fromIndex === -1 || toIndex === -1) return;
+
+  const [moved] = ordered.splice(fromIndex, 1);
+  ordered.splice(toIndex, 0, moved);
+  const reindexed = ordered.map((c, i) => ({ ...c, order: i }));
+  setCategories(reindexed);
+  if (!categoriesSynced) { saveLegacyCategories(reindexed); return; }
+  // Nacheinander statt parallel: Apps Script hat kein Locking auf
+  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
+  // dasselbe Sheet können sich gegenseitig überschreiben.
+  for (const c of reindexed) await updateCategory(c);
 }
 
 export function categoryInfo(id) {
@@ -156,7 +178,18 @@ export function renderCategoryButtons(container, selectedId, onSelect) {
 function renderCategoriesSettingsRow(cat) {
   const li = document.createElement("li");
   li.className = "trip-item";
+  li.dataset.id = cat.id;
   li.style.setProperty("--category-color", cat.color);
+
+  const handle = document.createElement("span");
+  handle.className = "place-drag-handle";
+  handle.textContent = "⠿";
+  handle.setAttribute("role", "button");
+  handle.setAttribute("aria-label", "Ziehen zum Sortieren");
+  attachDragHandle(handle, li, (draggedLi) => {
+    const listEl = draggedLi.parentElement;
+    return [...listEl.querySelectorAll(".trip-item")].filter((el) => el !== draggedLi);
+  }, onReorderCategories);
 
   const dot = document.createElement("span");
   dot.className = "route-category-dot";
@@ -191,7 +224,7 @@ function renderCategoriesSettingsRow(cat) {
     await removeCategory(cat.id);
   });
 
-  li.append(dot, nameField, colorField, saveBtn, delBtn);
+  li.append(handle, dot, nameField, colorField, saveBtn, delBtn);
   return li;
 }
 
