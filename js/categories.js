@@ -45,7 +45,11 @@ export async function loadCategories() {
   categoriesSynced = true;
   if (cats.length === 0) {
     const seeded = readLegacyCategories() || DEFAULT_CATEGORIES;
-    await Promise.all(seeded.map((c) => createCategory(c)));
+    // Nacheinander statt parallel: Apps Script hat kein Locking auf
+    // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
+    // dasselbe Sheet können sich gegenseitig überschreiben (beobachtet: von
+    // 5 parallelen Kategorie-Upserts kamen nur 2 im Sheet an).
+    for (const c of seeded) await createCategory(c);
     setCategories(seeded);
     return;
   }

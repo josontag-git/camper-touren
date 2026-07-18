@@ -350,10 +350,15 @@ async function onReorder(sourceId, targetId) {
   const reindexed = ordered.map((p, i) => ({ ...p, order: i }));
   setPlaces(reindexed);
   render();
-  await Promise.all(reindexed.map((p) => updatePlace(p))).catch((err) => {
+  // Nacheinander statt parallel: Apps Script hat kein Locking auf
+  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
+  // dasselbe Sheet können sich gegenseitig überschreiben.
+  try {
+    for (const p of reindexed) await updatePlace(p);
+  } catch (err) {
     onStatus(`Fehler beim Sortieren: ${friendlyError(err)}`);
     console.error(err);
-  });
+  }
 }
 
 let distanceAttempted = false;

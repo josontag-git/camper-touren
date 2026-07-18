@@ -143,7 +143,12 @@ async function onSaveTrip(existingTrip, fields, saveBtn) {
 }
 
 async function deleteTripCascade(trip, tripPlaces) {
-  await Promise.all(tripPlaces.map((p) => deletePlace(p.id)));
+  // Nacheinander statt parallel: deleteRowById() sucht die Zeile per
+  // Live-Scan und verschiebt beim Löschen alle Folgezeilen nach oben –
+  // gleichzeitige Requests könnten sich dadurch gegenseitig die falsche
+  // Zeile löschen lassen (unabhängig beobachtet bei parallelen Upserts,
+  // gleiche Ursache: kein Locking in Code.gs).
+  for (const p of tripPlaces) await deletePlace(p.id);
   await deleteTrip(trip.id);
   const { trips, currentTripId } = getState();
   if (currentTripId === trip.id) setPlaces([]);
