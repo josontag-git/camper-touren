@@ -3,6 +3,7 @@
 import { createTrip, updateTrip, deleteTrip, deletePlace, getPlaces } from "./api.js";
 import { getState, subscribe, setTrips, setPlaces, setCurrentTripId } from "./state.js";
 import { photoUrl } from "./places-search.js";
+import { friendlyError } from "./errors.js";
 
 const NEW_TRIP_VALUE = "__new__";
 
@@ -159,7 +160,7 @@ async function onSaveTrip(existingTrip, fields, saveBtn) {
   } catch (err) {
     saveBtn.disabled = false;
     saveBtn.textContent = "Speichern";
-    onStatus(`Fehler beim Speichern: ${err.message}`);
+    onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -181,7 +182,7 @@ async function onDeleteTrip() {
   try {
     await deleteTripCascade(currentTrip, places);
   } catch (err) {
-    onStatus(`Fehler beim Löschen: ${err.message}`);
+    onStatus(`Fehler beim Löschen: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -257,7 +258,7 @@ function renderSettingsTripRow(trip) {
         settingsConfirmDeleteId = null;
         renderSettingsTrips();
       } catch (err) {
-        onStatus(`Fehler beim Löschen: ${err.message}`);
+        onStatus(`Fehler beim Löschen: ${friendlyError(err)}`);
         console.error(err);
       }
     });
@@ -340,7 +341,7 @@ function renderSettingsTripForm(trip) {
     } catch (err) {
       saveBtn.disabled = false;
       saveBtn.textContent = "Speichern";
-      onStatus(`Fehler beim Speichern: ${err.message}`);
+      onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
       console.error(err);
     }
   });

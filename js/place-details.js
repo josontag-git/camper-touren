@@ -5,6 +5,7 @@
 
 import { CONFIG } from "./config.js";
 import { photoUrl, starRating } from "./places-search.js";
+import { friendlyError } from "./errors.js";
 
 async function fetchPlaceDetails(placeId) {
   const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
@@ -129,7 +130,7 @@ export async function openPlaceDetailModal(place) {
       panel.appendChild(list);
     }
   } catch (err) {
-    loading.textContent = `Fehler beim Laden: ${err.message}`;
+    loading.textContent = `Fehler beim Laden: ${friendlyError(err)}`;
     console.error(err);
   }
 }

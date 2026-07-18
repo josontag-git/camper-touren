@@ -2,6 +2,24 @@
 
 Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 
+## UX-Nacharbeit (nach Milestone 6)
+
+Nach einer UX-Durchsicht behoben:
+- **Sortieren in Plan funktioniert jetzt auf dem Handy.** Die alte native
+  HTML5-Drag&Drop-API (`draggable`) löst auf iOS/den meisten mobilen Browsern
+  nicht über Touch aus – `js/plan.js` nutzt jetzt eine eigene, auf Pointer
+  Events basierende Drag-Logik (Maus UND Touch), Drag-Handle-Icon von „☰"
+  (liest sich wie ein Menü) auf „⠿" geändert.
+- **Kontrast:** `--color-muted` in Mono/Seaview/Beach/Mountain View/Relax war
+  unter dem WCAG-AA-Grenzwert (4.5:1) für Fließtext – nachgedunkelt.
+- **Touch-Targets:** `.trip-icon-btn` (Bearbeiten/Löschen-Icons in jeder
+  Liste) von 34×34px auf 44×44px vergrößert.
+- **Fehlermeldungen:** rohe API-JSON-Fehler (z. B. Places-API-403) werden
+  nicht mehr direkt in der Status-Zeile angezeigt, sondern über
+  `js/errors.js` (`friendlyError()`) in einen kurzen, verständlichen Satz
+  übersetzt; das technische Detail steht weiterhin per `console.error` in
+  der Browser-Konsole.
+
 ## Stand: Milestone 6 – Inspire-Vorschläge, Foto/Rating in Listen, Ortsdetails
 
 Oben wählt man den Urlaub (Picker + Anlegen/Bearbeiten/Löschen). Für den
@@ -77,6 +95,8 @@ Dateien:
   Sterne-Rendering, Suche), genutzt von `plan.js` und `inspire.js`
 - `js/place-details.js` – Detailansicht (Modal) für einen gespeicherten Ort:
   weitere Fotos + Rezensionen via Places-API-"Place Details"
+- `js/errors.js` – übersetzt technische API-Fehler in kurze, verständliche
+  Statuszeilen-Texte (`friendlyError()`)
 - `js/trips.js`, `js/plan.js`, `js/route.js`, `js/inspire.js` – die vier Bereiche
 - `js/pull-to-refresh.js` – Pull-to-Refresh-Geste
 - `js/api.js` – Client für die Google-Apps-Script-Web-App (Trips/Places CRUD)

@@ -8,6 +8,7 @@ import { getGeminiKey } from "./settings.js";
 import { getState, setPlaces } from "./state.js";
 import { createPlace } from "./api.js";
 import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
+import { friendlyError } from "./errors.js";
 
 const MODEL = "gemini-3.5-flash";
 
@@ -139,7 +140,7 @@ async function addSuggestionToPlan(suggestion, place, btn) {
   } catch (err) {
     btn.disabled = false;
     btn.textContent = "Zu Plan hinzufügen";
-    onStatus(`Fehler beim Speichern: ${err.message}`);
+    onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -281,7 +282,7 @@ async function onSend(presetText) {
     conversation.push({ role: "model", text: reply, quickReplies, placeSuggestions });
     renderConversation();
   } catch (err) {
-    onStatus(err.message);
+    onStatus(friendlyError(err));
     console.error(err);
   } finally {
     btn.disabled = false;

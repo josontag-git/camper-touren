@@ -13,6 +13,7 @@ import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
 import { renderCategoriesSettings } from "./categories.js";
+import { friendlyError } from "./errors.js";
 
 const VIEWS = ["inspire-view", "plan-view", "route-view", "settings-view"];
 
@@ -51,7 +52,7 @@ async function loadPlacesForCurrentTrip() {
   try {
     setPlaces(await getPlaces(currentTripId));
   } catch (err) {
-    setStatus(`Fehler beim Laden der Orte: ${err.message}`);
+    setStatus(`Fehler beim Laden der Orte: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -64,7 +65,7 @@ async function loadTrips() {
     setStatus(wasLastLoadOffline() ? "Offline – zeige zuletzt gespeicherten Stand." : "");
     if (trips.length === 0) openNewTripForm();
   } catch (err) {
-    setStatus(err.message);
+    setStatus(friendlyError(err));
     console.error(err);
   }
 }

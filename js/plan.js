@@ -10,6 +10,7 @@ import { getCategories, UNCATEGORIZED, categoryInfo, allCategoryIds, renderCateg
 import { loadMapsApi } from "./maps-loader.js";
 import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
+import { friendlyError } from "./errors.js";
 
 const RADIUS_OPTIONS = [
   { value: "", label: "Umkreis: egal" },
@@ -22,7 +23,7 @@ const RADIUS_OPTIONS = [
 
 let onStatus = () => {};
 let editingPlaceId = null; // Bearbeiten eines bestehenden Orts inline in der Liste
-let dragSource = null; // { id, category }
+let pointerDrag = null; // aktiver Pointer-Drag zum Sortieren, siehe startPointerDrag()
 let viewMode = "category"; // "category" | "date" | "distance"
 let userPosition = null; // { lat, lng }, für viewMode "distance"
 
@@ -83,26 +84,10 @@ function createViewRow(place, metaOverride) {
   const li = document.createElement("li");
   li.className = "trip-item place-item";
   li.dataset.id = place.id;
+  li.dataset.category = place.category || "";
   li.style.setProperty("--category-color", categoryInfo(place.category).color);
 
   const draggable = viewMode === "category";
-  li.draggable = draggable;
-  if (draggable) {
-    li.addEventListener("dragstart", () => {
-      dragSource = { id: place.id, category: place.category || "" };
-      li.classList.add("dragging");
-    });
-    li.addEventListener("dragend", () => { li.classList.remove("dragging"); dragSource = null; });
-    li.addEventListener("dragover", (e) => {
-      if (dragSource && dragSource.category === (place.category || "")) e.preventDefault();
-    });
-    li.addEventListener("drop", (e) => {
-      e.preventDefault();
-      if (dragSource && dragSource.id !== place.id && dragSource.category === (place.category || "")) {
-        onReorder(dragSource.id, place.id);
-      }
-    });
-  }
 
   const info = document.createElement("div");
   info.className = "trip-info";
@@ -149,13 +134,63 @@ function createViewRow(place, metaOverride) {
   if (draggable) {
     const handle = document.createElement("span");
     handle.className = "place-drag-handle";
-    handle.textContent = "☰";
+    handle.textContent = "⠿";
+    handle.setAttribute("role", "button");
     handle.setAttribute("aria-label", "Ziehen zum Sortieren");
+    handle.addEventListener("pointerdown", (e) => startPointerDrag(e, place, li));
     li.append(handle, ...thumbPart, info, editBtn, delBtn);
   } else {
     li.append(...thumbPart, info, editBtn, delBtn);
   }
   return li;
+}
+
+// --- Sortieren per Pointer Events (Maus UND Touch) statt native HTML5-DnD,
+// die auf iOS/den meisten mobilen Browsern ohne Touch-Support nicht auslöst. ---
+
+function startPointerDrag(e, place, li) {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  e.preventDefault();
+
+  const listEl = li.parentElement;
+  const category = place.category || "";
+  const items = [...listEl.querySelectorAll(".place-item")]
+    .filter((el) => el !== li && el.dataset.category === category)
+    .map((el) => {
+      const r = el.getBoundingClientRect();
+      return { id: el.dataset.id, el, top: r.top, bottom: r.bottom };
+    });
+
+  pointerDrag = { id: place.id, pointerId: e.pointerId, li, items, startClientY: e.clientY, targetId: null };
+  li.classList.add("dragging");
+  try { e.target.setPointerCapture(e.pointerId); } catch { /* iOS < 13 ohne Pointer-Capture: Fallback ohne */ }
+
+  document.addEventListener("pointermove", onPointerDragMove);
+  document.addEventListener("pointerup", onPointerDragEnd);
+  document.addEventListener("pointercancel", onPointerDragEnd);
+}
+
+function onPointerDragMove(e) {
+  if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+  const deltaY = e.clientY - pointerDrag.startClientY;
+  pointerDrag.li.style.transform = `translateY(${deltaY}px)`;
+
+  const target = pointerDrag.items.find((item) => e.clientY >= item.top && e.clientY <= item.bottom);
+  pointerDrag.items.forEach((item) => item.el.classList.toggle("drop-target", item === target));
+  pointerDrag.targetId = target ? target.id : null;
+}
+
+function onPointerDragEnd(e) {
+  if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+  const { li, targetId, id, items } = pointerDrag;
+  li.style.transform = "";
+  li.classList.remove("dragging");
+  items.forEach((item) => item.el.classList.remove("drop-target"));
+  document.removeEventListener("pointermove", onPointerDragMove);
+  document.removeEventListener("pointerup", onPointerDragEnd);
+  document.removeEventListener("pointercancel", onPointerDragEnd);
+  pointerDrag = null;
+  if (targetId && targetId !== id) onReorder(id, targetId);
 }
 
 function createFormRow(place) {
@@ -277,7 +312,7 @@ async function onSave(existing, fields, saveBtn) {
   } catch (err) {
     saveBtn.disabled = false;
     saveBtn.textContent = "Speichern";
-    onStatus(`Fehler beim Speichern: ${err.message}`);
+    onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -288,7 +323,7 @@ async function onDelete(place) {
     await deletePlace(place.id);
     setPlaces(getState().places.filter((p) => p.id !== place.id));
   } catch (err) {
-    onStatus(`Fehler beim Löschen: ${err.message}`);
+    onStatus(`Fehler beim Löschen: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -305,7 +340,7 @@ async function onReorder(sourceId, targetId) {
   setPlaces(reindexed);
   render();
   await Promise.all(reindexed.map((p) => updatePlace(p))).catch((err) => {
-    onStatus(`Fehler beim Sortieren: ${err.message}`);
+    onStatus(`Fehler beim Sortieren: ${friendlyError(err)}`);
     console.error(err);
   });
 }
@@ -420,7 +455,7 @@ async function saveSearchResult(place, index, dates, saveBtn) {
   } catch (err) {
     saveBtn.disabled = false;
     saveBtn.textContent = "In Plan speichern";
-    onStatus(`Fehler beim Speichern: ${err.message}`);
+    onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -563,7 +598,7 @@ async function renderResultsMap(mapEl) {
     withCoords.forEach((p) => bounds.extend({ lat: p.location.latitude, lng: p.location.longitude }));
     resultsMap.fitBounds(bounds);
   } catch (err) {
-    onStatus(err.message);
+    onStatus(friendlyError(err));
     console.error(err);
   }
 }
@@ -626,7 +661,7 @@ function renderSearchUI(container) {
       renderAddContainer();
     } catch (err) {
       searchResults = [];
-      onStatus(err.message);
+      onStatus(friendlyError(err));
       console.error(err);
       renderAddContainer();
     } finally {
