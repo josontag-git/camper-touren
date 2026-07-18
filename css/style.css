@@ -32,6 +32,12 @@ html, body {
   min-height: 100dvh;
 }
 
+.app-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
 .app-header {
   display: flex;
   align-items: flex-end;
@@ -43,9 +49,7 @@ html, body {
   background-size: cover;
   background-position: center;
   color: var(--color-text);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: relative;
   transition: background-image 0.2s ease-out;
 }
 
@@ -73,6 +77,70 @@ html, body {
 
 .app-header--photo h1 {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* Header-Hintergrundmotive (feste Auswahl, css/js/header-theme.js) */
+
+.app-header[data-header-theme="sea-turquoise"] {
+  background-image: linear-gradient(180deg, #05445e 0%, #189ab4 45%, #75e6da 100%);
+}
+
+.app-header[data-header-theme="sea-deep"] {
+  background-image: linear-gradient(180deg, #011126 0%, #073b6b 50%, #1c6ea4 100%);
+}
+
+.app-header[data-header-theme="sea-sunset"] {
+  background-image: linear-gradient(180deg, #3a0ca3 0%, #d7509f 45%, #ff9f5a 100%);
+}
+
+.app-header[data-header-theme="mountains"] {
+  background-image: linear-gradient(180deg, #1e3c53 0%, #4b6584 55%, #a5b1c2 100%);
+}
+
+.app-header[data-header-theme="forest"] {
+  background-image: linear-gradient(180deg, #0b3d2e 0%, #40916c 55%, #95d5b2 100%);
+}
+
+.app-header[data-header-theme="desert"] {
+  background-image: linear-gradient(180deg, #7f5539 0%, #ddb892 55%, #ffe8d6 100%);
+}
+
+.app-header[data-header-theme="stars"] {
+  background-image:
+    radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 35% 55%, #fff, transparent),
+    radial-gradient(1px 1px at 55% 20%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 75% 45%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 65%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 25% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 65% 85%, #fff, transparent),
+    linear-gradient(180deg, #03071e 0%, #0b132b 60%, #1c2541 100%);
+}
+
+/* Changelog-Banner (klebt direkt unter dem Header, siehe .app-sticky) */
+
+.changelog-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.changelog-banner button {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px;
 }
 
 #view-root {
@@ -424,6 +492,48 @@ html, body {
   margin-top: 0;
 }
 
+/* Vertikale Zeitachse (Plan-Datumsansicht + Route), nur wenn der Urlaub
+   einen festen Zeitraum hat – siehe trips-list--timeline in plan.js/route.js.
+   Die Linie sitzt im Koordinatensystem der Liste selbst (kein Padding auf
+   .trips-list--timeline), Überschrift/Zeilen rücken stattdessen per eigenem
+   padding-left/margin-left ein – vermeidet verschachtelte Offset-Rechnerei. */
+
+.trips-list--timeline {
+  position: relative;
+}
+
+.trips-list--timeline::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.trips-list--timeline .place-group-heading {
+  position: relative;
+  padding-left: 26px;
+}
+
+.trips-list--timeline .place-group-heading::before {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg);
+  box-shadow: 0 0 0 2px var(--category-color, var(--color-border));
+  background: var(--color-bg);
+}
+
+.trips-list--timeline .trip-item {
+  margin-left: 26px;
+}
+
 /* Ansichtswechsel (Plan) — Pill-Segmented-Control */
 
 .view-mode-switch {
@@ -565,6 +675,48 @@ html, body {
   border-bottom-left-radius: 6px;
 }
 
+.chat-bubble-typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.chat-bubble-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-muted);
+  animation: typing-bounce 1.1s infinite ease-in-out;
+}
+
+.chat-bubble-typing span:nth-child(2) { animation-delay: 0.15s; }
+.chat-bubble-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+.inspire-hint-line {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin: -4px 0 4px;
+}
+
+.inspire-suggestions-headline {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin: 4px 0 -4px;
+}
+
+.inspire-reset-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  text-align: center;
+}
+
 .inspire-results {
   display: flex;
   flex-direction: column;
@@ -585,6 +737,17 @@ html, body {
 
 .inspire-card .btn {
   margin-top: 10px;
+}
+
+.inspire-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.inspire-card-actions .btn {
+  margin-top: 0;
+  flex: 1;
 }
 
 .inspire-card-photo {

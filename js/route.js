@@ -83,56 +83,96 @@ async function renderMap(places) {
   }
 }
 
+function buildRouteRow(place, markerNumber) {
+  const li = document.createElement("li");
+  li.className = "trip-item";
+  li.style.setProperty("--category-color", categoryInfo(place.category).color);
+
+  const dot = document.createElement("span");
+  dot.className = "route-category-dot";
+
+  const info = document.createElement("div");
+  info.className = "trip-info";
+  if (place.placeId) {
+    info.classList.add("trip-info-clickable");
+    info.setAttribute("role", "button");
+    info.setAttribute("tabindex", "0");
+    info.addEventListener("click", () => openPlaceDetailModal(place));
+    info.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlaceDetailModal(place); }
+    });
+  }
+  const title = document.createElement("div");
+  title.className = "trip-title";
+  title.textContent = `${markerNumber}. ${place.name || "(ohne Namen)"}`;
+  const meta = document.createElement("div");
+  meta.className = "trip-meta";
+  const baseMeta = hasCoords(place) ? `${place.lat}, ${place.lng}` : (place.address || "Keine Koordinaten/Adresse");
+  meta.textContent = place.rating ? `${starRating(place.rating)} ${place.rating} · ${baseMeta}` : baseMeta;
+  info.append(title, meta);
+
+  const link = document.createElement("a");
+  link.className = "btn btn-ghost-dark";
+  link.href = placeMapsUrl(place);
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = "Maps ↗";
+
+  const thumbPart = [];
+  if (place.photoRef) {
+    const thumb = document.createElement("img");
+    thumb.className = "place-thumb";
+    thumb.src = photoUrl(place.photoRef, 120);
+    thumb.alt = "";
+    thumbPart.push(thumb);
+  }
+
+  li.append(dot, ...thumbPart, info, link);
+  return li;
+}
+
 function renderList(places) {
   const list = document.getElementById("route-list");
+  list.classList.remove("trips-list--timeline");
+  list.innerHTML = "";
+  places.forEach((place, i) => list.appendChild(buildRouteRow(place, i + 1)));
+}
+
+// Gruppiert nach arrivalDate (gleiches Muster wie plan.js) – nur für die
+// Zeitachsen-Ansicht, wenn der Urlaub einen festen Zeitraum hat.
+function groupedByDate(places) {
+  const withDate = places.filter((p) => p.arrivalDate);
+  const withoutDate = places.filter((p) => !p.arrivalDate);
+  const dates = [...new Set(withDate.map((p) => p.arrivalDate))].sort();
+  const groups = dates.map((date) => ({
+    id: date,
+    label: new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }),
+    color: "#6b7278",
+    places: withDate.filter((p) => p.arrivalDate === date),
+  }));
+  if (withoutDate.length) groups.push({ id: "__none__", label: "Ohne Datum", color: "#9199ab", places: withoutDate });
+  return groups;
+}
+
+// Zeitachsen-Ansicht: Reihenfolge/Gruppierung nach Datum, aber die Marker-
+// Nummer bleibt die Position im ORIGINAL order-sortierten Array, damit sie
+// weiterhin exakt zum entsprechenden Kartenmarker aus renderMap() passt.
+function renderTimelineList(allOrderSorted) {
+  const list = document.getElementById("route-list");
+  list.classList.add("trips-list--timeline");
   list.innerHTML = "";
 
-  places.forEach((place, i) => {
-    const li = document.createElement("li");
-    li.className = "trip-item";
-    li.style.setProperty("--category-color", categoryInfo(place.category).color);
+  const markerNumberById = new Map(allOrderSorted.map((p, i) => [p.id, i + 1]));
+  groupedByDate(allOrderSorted).forEach((group) => {
+    const heading = document.createElement("li");
+    heading.className = "place-group-heading";
+    heading.style.setProperty("--category-color", group.color);
+    heading.textContent = group.label;
+    list.appendChild(heading);
 
-    const dot = document.createElement("span");
-    dot.className = "route-category-dot";
-
-    const info = document.createElement("div");
-    info.className = "trip-info";
-    if (place.placeId) {
-      info.classList.add("trip-info-clickable");
-      info.setAttribute("role", "button");
-      info.setAttribute("tabindex", "0");
-      info.addEventListener("click", () => openPlaceDetailModal(place));
-      info.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlaceDetailModal(place); }
-      });
-    }
-    const title = document.createElement("div");
-    title.className = "trip-title";
-    title.textContent = `${i + 1}. ${place.name || "(ohne Namen)"}`;
-    const meta = document.createElement("div");
-    meta.className = "trip-meta";
-    const baseMeta = hasCoords(place) ? `${place.lat}, ${place.lng}` : (place.address || "Keine Koordinaten/Adresse");
-    meta.textContent = place.rating ? `${starRating(place.rating)} ${place.rating} · ${baseMeta}` : baseMeta;
-    info.append(title, meta);
-
-    const link = document.createElement("a");
-    link.className = "btn btn-ghost-dark";
-    link.href = placeMapsUrl(place);
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Maps ↗";
-
-    const thumbPart = [];
-    if (place.photoRef) {
-      const thumb = document.createElement("img");
-      thumb.className = "place-thumb";
-      thumb.src = photoUrl(place.photoRef, 120);
-      thumb.alt = "";
-      thumbPart.push(thumb);
-    }
-
-    li.append(dot, ...thumbPart, info, link);
-    list.appendChild(li);
+    group.places.forEach((place) => {
+      list.appendChild(buildRouteRow(place, markerNumberById.get(place.id)));
+    });
   });
 }
 
@@ -162,7 +202,11 @@ function render() {
   emptyEl.classList.add("hidden");
   const all = sortedPlaces();
   renderMap(all);
-  renderList(all);
+  if (currentTrip.startDate && currentTrip.endDate) {
+    renderTimelineList(all);
+  } else {
+    renderList(all);
+  }
 
   const routeUrl = fullRouteMapsUrl(all);
   fullRouteBtn.classList.toggle("hidden", !routeUrl);

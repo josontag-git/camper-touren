@@ -6,6 +6,7 @@ import { registerServiceWorker } from "./sw-register.js";
 import { getTrips, getPlaces, wasLastLoadOffline } from "./api.js";
 import { getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey } from "./settings.js";
 import { getColorTheme, setColorTheme, applyColorTheme, THEMES } from "./theme.js";
+import { getHeaderTheme, setHeaderTheme, applyHeaderTheme, HEADER_THEMES } from "./header-theme.js";
 import { getState, subscribe, setTrips, setPlaces } from "./state.js";
 import { initTripBar, openNewTripForm, initTripsSettings } from "./trips.js";
 import { initPlan } from "./plan.js";
@@ -14,6 +15,7 @@ import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
 import { renderCategoriesSettings } from "./categories.js";
 import { friendlyError } from "./errors.js";
+import { LATEST_CHANGE, isChangelogDismissed, dismissChangelog } from "./changelog.js";
 
 const VIEWS = ["inspire-view", "plan-view", "route-view", "settings-view"];
 
@@ -36,6 +38,17 @@ function initOfflineBanner() {
   window.addEventListener("online", update);
   window.addEventListener("offline", update);
   update();
+}
+
+function initChangelogBanner() {
+  const banner = document.getElementById("changelog-banner");
+  const text = document.getElementById("changelog-banner-text");
+  text.textContent = LATEST_CHANGE.text;
+  banner.classList.toggle("hidden", isChangelogDismissed());
+  document.getElementById("changelog-banner-close").addEventListener("click", () => {
+    dismissChangelog();
+    banner.classList.add("hidden");
+  });
 }
 
 function setStatus(text) {
@@ -79,6 +92,7 @@ function initSettingsUI() {
   const urlInput = document.getElementById("script-url-input");
   const geminiInput = document.getElementById("gemini-key-input");
   const themeSelect = document.getElementById("color-theme-select");
+  const headerThemeSelect = document.getElementById("header-theme-select");
   const status = document.getElementById("settings-status");
 
   urlInput.value = getScriptUrl();
@@ -92,6 +106,15 @@ function initSettingsUI() {
   });
   themeSelect.value = getColorTheme();
   themeSelect.addEventListener("change", () => setColorTheme(themeSelect.value));
+
+  HEADER_THEMES.forEach((theme) => {
+    const opt = document.createElement("option");
+    opt.value = theme.id;
+    opt.textContent = theme.label;
+    headerThemeSelect.appendChild(opt);
+  });
+  headerThemeSelect.value = getHeaderTheme();
+  headerThemeSelect.addEventListener("change", () => setHeaderTheme(headerThemeSelect.value));
 
   document.getElementById("save-settings-btn").addEventListener("click", () => {
     setScriptUrl(urlInput.value);
@@ -107,8 +130,10 @@ function initSettingsUI() {
 
 function init() {
   applyColorTheme(getColorTheme());
+  applyHeaderTheme(getHeaderTheme());
   initNav();
   initOfflineBanner();
+  initChangelogBanner();
   initSettingsUI();
   initTripBar(setStatus);
   initPlan(setStatus);

@@ -13,7 +13,7 @@ const DEFAULT_CATEGORIES = [
   { id: "Sonstiges", label: "Sonstiges", color: "#8a7d5e" },
 ];
 
-export const UNCATEGORIZED = { id: "", label: "Ohne Kategorie", color: "#9199ab" };
+export const UNCATEGORIZED = { id: "", label: "Noch nicht eingeplante Orte", color: "#9199ab" };
 
 export function getCategories() {
   const raw = localStorage.getItem(STORAGE_CATEGORIES);

@@ -2,7 +2,6 @@
 
 import { createTrip, updateTrip, deleteTrip, deletePlace, getPlaces } from "./api.js";
 import { getState, subscribe, setTrips, setPlaces, setCurrentTripId } from "./state.js";
-import { photoUrl } from "./places-search.js";
 import { friendlyError } from "./errors.js";
 
 const NEW_TRIP_VALUE = "__new__";
@@ -37,30 +36,7 @@ function renderPicker() {
 
   picker.value = currentTripId || (trips[0]?.id ?? NEW_TRIP_VALUE);
 
-  const hasCurrent = !!currentTripId;
-  document.getElementById("edit-trip-btn").disabled = !hasCurrent;
-  document.getElementById("delete-trip-btn").disabled = !hasCurrent;
-}
-
-// Headerbild aus dem ersten gespeicherten Ort des aktuellen Urlaubs, der ein
-// Foto hat (per `order` sortiert) – ohne Treffer bleibt der Header wie bisher
-// eine reine Farbfläche, kein zusätzlicher Bild-Beschaffungsaufwand nötig.
-function updateHeaderPhoto() {
-  const header = document.querySelector(".app-header");
-  if (!header) return;
-  const { places } = getState();
-  const withPhoto = places
-    .slice()
-    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-    .find((p) => p.photoRef);
-
-  if (withPhoto) {
-    header.style.backgroundImage = `url("${photoUrl(withPhoto.photoRef, 800)}")`;
-    header.classList.add("app-header--photo");
-  } else {
-    header.style.backgroundImage = "";
-    header.classList.remove("app-header--photo");
-  }
+  document.getElementById("edit-trip-btn").disabled = !currentTripId;
 }
 
 function renderForm() {
@@ -173,20 +149,6 @@ async function deleteTripCascade(trip, tripPlaces) {
   setTrips(trips.filter((t) => t.id !== trip.id));
 }
 
-async function onDeleteTrip() {
-  const { currentTrip, places } = getState();
-  if (!currentTrip) return;
-  const placeCount = places.length;
-  const warning = placeCount > 0 ? ` (inkl. ${placeCount} Ort${placeCount === 1 ? "" : "e"} im Plan)` : "";
-  if (!window.confirm(`"${currentTrip.name || "Urlaub"}"${warning} wirklich löschen?`)) return;
-  try {
-    await deleteTripCascade(currentTrip, places);
-  } catch (err) {
-    onStatus(`Fehler beim Löschen: ${friendlyError(err)}`);
-    console.error(err);
-  }
-}
-
 export function initTripBar(statusCallback) {
   onStatus = statusCallback;
 
@@ -206,14 +168,10 @@ export function initTripBar(statusCallback) {
     renderForm();
   });
 
-  document.getElementById("delete-trip-btn").addEventListener("click", onDeleteTrip);
+  document.getElementById("add-trip-btn").addEventListener("click", openNewTripForm);
 
-  subscribe(() => {
-    renderPicker();
-    updateHeaderPhoto();
-  });
+  subscribe(renderPicker);
   renderPicker();
-  updateHeaderPhoto();
 }
 
 export function openNewTripForm() {

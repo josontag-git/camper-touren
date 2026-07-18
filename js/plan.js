@@ -729,6 +729,9 @@ function render() {
     visibleCount = renderDistanceMode(list);
   }
 
+  const showTimeline = viewMode === "date" && !!currentTrip.startDate && !!currentTrip.endDate;
+  list.classList.toggle("trips-list--timeline", showTimeline);
+
   document.getElementById("plan-empty").classList.toggle("hidden", visibleCount > 0 || addMode !== null);
 }
 

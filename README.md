@@ -20,39 +20,52 @@ Nach einer UX-Durchsicht behoben:
   übersetzt; das technische Detail steht weiterhin per `console.error` in
   der Browser-Konsole.
 
-## Stand: Milestone 6 – Inspire-Vorschläge, Foto/Rating in Listen, Ortsdetails
+## Stand: Milestone 7 – Header-Theme, Changelog-Banner, Inspire-Feinschliff, Zeitachsen
 
-Oben wählt man den Urlaub (Picker + Anlegen/Bearbeiten/Löschen). Für den
-gewählten Urlaub gibt es drei Bereiche plus Einstellungen (floatende
-Bottom-Nav mit Icon + Text-Label):
+Oben wählt man den Urlaub (Picker + Stift zum Bearbeiten + „＋" für einen
+neuen Urlaub – Löschen gibt es bewusst nur noch in den Einstellungen, mit
+zweistufiger Bestätigung, siehe unten). Für den gewählten Urlaub gibt es drei
+Bereiche plus Einstellungen (floatende Bottom-Nav mit Icon + Text-Label):
 
 - **Inspire** – Chat mit Gemini (Google-Search-Grounding, Mehrturn-Konversation)
-  für kreative Ideen zum Urlaub; Gemini stellt bei Bedarf auch Rückfragen –
-  als kurze, klickbare Antwort-Chips unter der jeweiligen Antwort (Klick
-  befüllt und sendet die Nachricht direkt). Konkrete Ortsvorschläge aus dem
-  Gespräch erscheinen zusätzlich als Vorschau-Karten (Foto + Sterne-Bewertung
-  aus der Google-Places-Suche) mit direktem "Zu Plan hinzufügen". Braucht
-  einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt Chat.
+  für kreative Ideen zum Urlaub, mit Tipp-Indikator während der Antwort
+  überlegt wird. Rückfragen kommen zusätzlich als klickbare Antwort-Chips
+  (Klick befüllt, sendet die Nachricht und scrollt automatisch ans Ende).
+  Konkrete Ortsvorschläge erscheinen unter der Headline „Meine Vorschläge:"
+  als Vorschau-Karten (Foto + Sterne-Bewertung aus der Google-Places-Suche)
+  mit „Zu Plan hinzufügen" (lässt sich per erneutem Klick auf „Hinzugefügt"
+  wieder entfernen) und „Details" (öffnet dieselbe Fotos/Rezensionen-
+  Detailansicht wie in Plan/Route). Braucht einen Gemini-API-Key
+  (Einstellungen), sonst nur ein Hinweis statt Chat. „Neue Inspiration" ganz
+  unten setzt die Konversation zurück auf die leere Ausgangsansicht.
 - **Plan** – Orte suchen (volle Google-Places-Suche: Umkreis um den aktuellen
   Standort, Foto, Sterne-Bewertung + Link zur Maps-Seite, Kategorie per Button
   wählen) oder manuell eintragen, nach Kategorie gruppiert mit Filter-Chips
   zum Ein-/Ausblenden. Umschaltbar zwischen Ansicht nach Kategorie (mit
-  Drag&Drop-Sortierung), nach Datum, oder nach aktueller Entfernung
+  Drag&Drop-Sortierung, auch per Touch), nach Datum (als vertikale Zeitachse,
+  sobald der Urlaub Start-/Enddatum hat), oder nach aktueller Entfernung
   (Standortabfrage). Gespeicherte Orte aus einer Suche zeigen in der Liste
   ein Vorschaubild + Sterne; antippen öffnet eine Detailansicht mit weiteren
-  Fotos und Rezensionen.
+  Fotos und Rezensionen. Orte ohne Kategorie (u. a. alle aus Inspire
+  hinzugefügten) laufen unter „Noch nicht eingeplante Orte".
 - **Route** – Karte (Google Maps JavaScript API) mit ALLEN Orten des Urlaubs,
   die Koordinaten haben – Marker nach Kategorie eingefärbt –, Liste darunter
-  (ebenfalls mit Vorschaubild/Sterne + antippbarer Detailansicht), plus
-  Absprung einzelner Orte oder der gesamten Route nach Google Maps.
-- **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema, sowie
-  Urlaubs- und Kategorienverwaltung (siehe unten).
+  (ebenfalls mit Vorschaubild/Sterne + antippbarer Detailansicht). Hat der
+  Urlaub ein Start-/Enddatum, gruppiert sich die Liste wie in Plan entlang
+  einer vertikalen Zeitachse nach Ankunftsdatum – die Nummerierung bleibt
+  dabei die Positions-Nummer aus der Routen-Reihenfolge, damit sie weiterhin
+  zum passenden Kartenmarker passt. Plus Absprung einzelner Orte oder der
+  gesamten Route nach Google Maps.
+- **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema,
+  Header-Hintergrund, sowie Urlaubs- und Kategorienverwaltung (siehe unten).
 
-Der Header zeigt automatisch das Foto des ersten gespeicherten Orts (mit
-Foto) des aktuellen Urlaubs als Hintergrund (z. B. ein Bergpanorama bei einer
-Südtirol-Tour) – ohne passendes Foto bleibt er wie zuvor eine reine
-Farbfläche. Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt
-Urlaube/Orte neu.
+Der Header zeigt ein festes, in den Einstellungen wählbares Hintergrundmotiv
+(mehrere Meer-Varianten, Berge, Wald, Wüste, Sternenhimmel oder keins) –
+reine CSS-Gradients, keine echten Fotos. Direkt darunter klebt ein
+Changelog-Banner mit einem kurzen Hinweis auf die letzte nennenswerte
+Änderung, per „✕" dauerhaft ausblendbar (erscheint erst wieder, wenn sich der
+Text beim nächsten Release ändert). Am oberen Rand nach unten ziehen
+(Pull-to-Refresh) lädt Urlaube/Orte neu.
 
 ### Design
 
@@ -66,7 +79,9 @@ Farbwerte, nicht die Grundform der Elemente.
 
 ### Urlaubsverwaltung (Einstellungen)
 
-Unter **Einstellungen → Urlaube verwalten** lässt sich jeder Urlaub inline
+Die Trip-Leiste oben bietet nur noch Bearbeiten (Stift) und einen neuen
+Urlaub anlegen ("＋"). Gelöscht wird ausschließlich unter
+**Einstellungen → Urlaube verwalten**: jeder Urlaub lässt sich dort inline
 bearbeiten (Name/Zeitraum/Notiz) oder löschen. Löschen entfernt den Urlaub
 inkl. aller zugehörigen Orte unwiderruflich und erfordert eine zweite,
 inline eingeblendete Bestätigung ("Wirklich löschen? Ja, löschen / Abbrechen").
@@ -88,6 +103,9 @@ Dateien:
 - `js/state.js` – kleiner Pub/Sub-Store (aktueller Urlaub, seine Orte, Kategorie-Filter)
 - `js/settings.js` – localStorage-Einstellungen (Apps-Script-URL, Gemini-Key)
 - `js/theme.js` – Farbschema-Verwaltung
+- `js/header-theme.js` – Header-Hintergrundmotiv-Verwaltung (feste
+  CSS-Gradient-Auswahl, kein Foto-Zugriff)
+- `js/changelog.js` – Text + Dismiss-Status für das "Was ist neu"-Banner
 - `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Chip-Rendering
 - `js/maps-loader.js` – lädt die Google Maps JavaScript API einmalig nach
   (gemeinsam genutzt von Route für die Karte und Plan für die Orts-Suche)
@@ -194,6 +212,15 @@ nicht committed). Ohne Key zeigt "Inspire" nur einen Hinweis statt der Suche.
 Unter **Einstellungen → Farbschema** wählbar: Mono (Standard), Seaview,
 Sunset, Beach, Citylights, Mountain View, Party, Relax, Crazy. Definiert als
 CSS-Variablen pro `[data-color-theme="…"]` in `css/style.css`.
+
+## Header-Hintergrund
+
+Unter **Einstellungen → Header-Hintergrund** wählbar: kein Bild, drei
+Meer-Varianten (Türkis, Tiefblau, Sonnenuntergang), Berge, Wald, Wüste,
+Sternenhimmel. Reine `linear-/radial-gradient`-Motive in `css/style.css`
+(`.app-header[data-header-theme="…"]`) statt echter Fotos – dafür gibt es
+keine lizenzfreie Bildquelle im Projekt. Auswahl in `localStorage`
+(`js/header-theme.js`), unabhängig vom Farbschema.
 
 ## Lokal starten
 

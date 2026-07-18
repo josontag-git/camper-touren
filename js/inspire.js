@@ -6,19 +6,28 @@
 
 import { getGeminiKey } from "./settings.js";
 import { getState, setPlaces } from "./state.js";
-import { createPlace } from "./api.js";
+import { createPlace, deletePlace } from "./api.js";
 import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
+import { openPlaceDetailModal } from "./place-details.js";
 import { friendlyError } from "./errors.js";
 
 const MODEL = "gemini-3.5-flash";
+const EXAMPLE_HINT = "Frag nach Ideen für Orte, Routen oder Aktivitäten – z. B. \"Was können wir an einem Regentag an der Nordsee machen?\"";
+const EXAMPLE_PLACEHOLDER = "z. B. Was können wir an einem Regentag machen?";
+const FOLLOWUP_PLACEHOLDER = "Deine Antwort …";
 
 let onStatus = () => {};
 let conversation = []; // [{ role: "user"|"model", text, quickReplies?, placeSuggestions? }]
 let resolvedSuggestions = {}; // key (name+query) -> { status: "loading"|"done"|"error", place? }
-let addedSuggestions = new Set(); // key von bereits nach Plan übernommenen Vorschlägen
+let addedSuggestions = new Map(); // key -> placeId des angelegten Plan-Eintrags
+let typing = false; // Tipp-Indikator während auf Gemini gewartet wird
 
 function suggestionKey(s) {
   return `${s.name}|${s.query || ""}`;
+}
+
+function scrollToBottom() {
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
 }
 
 function systemContext() {
@@ -110,6 +119,7 @@ async function addSuggestionToPlan(suggestion, place, btn) {
     onStatus("Bitte zuerst einen Urlaub auswählen oder anlegen.");
     return;
   }
+  const key = suggestionKey(suggestion);
   btn.disabled = true;
   btn.textContent = "Speichert …";
   const record = {
@@ -134,13 +144,32 @@ async function addSuggestionToPlan(suggestion, place, btn) {
   try {
     await createPlace(record);
     setPlaces([...places, record]);
-    addedSuggestions.add(suggestionKey(suggestion));
+    addedSuggestions.set(key, record.id);
     onStatus(`"${record.name}" zum Plan hinzugefügt.`);
     renderConversation();
   } catch (err) {
     btn.disabled = false;
     btn.textContent = "Zu Plan hinzufügen";
     onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
+    console.error(err);
+  }
+}
+
+async function removeSuggestionFromPlan(suggestion, btn) {
+  const key = suggestionKey(suggestion);
+  const placeId = addedSuggestions.get(key);
+  if (!placeId) return;
+  btn.disabled = true;
+  btn.textContent = "Entfernt …";
+  try {
+    await deletePlace(placeId);
+    setPlaces(getState().places.filter((p) => p.id !== placeId));
+    addedSuggestions.delete(key);
+    renderConversation();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Hinzugefügt";
+    onStatus(`Fehler beim Entfernen: ${friendlyError(err)}`);
     console.error(err);
   }
 }
@@ -200,30 +229,52 @@ function buildSuggestionCard(suggestion) {
     card.appendChild(addr);
   }
 
+  const actions = document.createElement("div");
+  actions.className = "inspire-card-actions";
+
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary";
   const alreadyAdded = addedSuggestions.has(key);
-  addBtn.textContent = alreadyAdded ? "Hinzugefügt ✓" : "Zu Plan hinzufügen";
-  addBtn.disabled = alreadyAdded;
-  addBtn.addEventListener("click", () => addSuggestionToPlan(suggestion, place, addBtn));
-  card.appendChild(addBtn);
+  addBtn.textContent = alreadyAdded ? "Hinzugefügt" : "Zu Plan hinzufügen";
+  addBtn.addEventListener("click", () => {
+    if (alreadyAdded) removeSuggestionFromPlan(suggestion, addBtn);
+    else addSuggestionToPlan(suggestion, place, addBtn);
+  });
+  actions.appendChild(addBtn);
+
+  if (place.id) {
+    const detailsBtn = document.createElement("button");
+    detailsBtn.className = "btn btn-ghost-dark";
+    detailsBtn.textContent = "Details";
+    detailsBtn.addEventListener("click", () => openPlaceDetailModal({
+      name: place.displayName?.text || suggestion.name,
+      placeId: place.id,
+    }));
+    actions.appendChild(detailsBtn);
+  }
+
+  card.appendChild(actions);
 
   return card;
 }
 
 function renderConversation() {
   const container = document.getElementById("inspire-results");
+  const resetBtn = document.getElementById("inspire-reset-btn");
   container.innerHTML = "";
+  resetBtn.classList.toggle("hidden", conversation.length === 0);
 
   if (conversation.length === 0) {
     const hint = document.createElement("p");
     hint.className = "muted";
-    hint.textContent = "Frag nach Ideen für Orte, Routen oder Aktivitäten – z. B. \"Was können wir an einem Regentag an der Nordsee machen?\"";
+    hint.textContent = EXAMPLE_HINT;
     container.appendChild(hint);
     return;
   }
 
-  conversation.forEach((turn) => {
+  const firstModelIndex = conversation.findIndex((t) => t.role === "model");
+
+  conversation.forEach((turn, index) => {
     const bubble = document.createElement("div");
     bubble.className = turn.role === "user" ? "chat-bubble chat-bubble-user" : "chat-bubble chat-bubble-model";
     bubble.textContent = turn.text;
@@ -239,13 +290,25 @@ function renderConversation() {
         chip.type = "button";
         chip.className = "category-chip";
         chip.textContent = reply;
-        chip.addEventListener("click", () => onSend(reply));
+        chip.addEventListener("click", () => { scrollToBottom(); onSend(reply); });
         chipRow.appendChild(chip);
       });
       container.appendChild(chipRow);
     }
 
+    if (index === firstModelIndex) {
+      const hintLine = document.createElement("p");
+      hintLine.className = "inspire-hint-line";
+      hintLine.textContent = `Beispiel: ${EXAMPLE_PLACEHOLDER}`;
+      container.appendChild(hintLine);
+    }
+
     if (turn.placeSuggestions?.length) {
+      const headline = document.createElement("div");
+      headline.className = "inspire-suggestions-headline";
+      headline.textContent = "Meine Vorschläge:";
+      container.appendChild(headline);
+
       const cardsWrap = document.createElement("div");
       cardsWrap.className = "inspire-results";
       turn.placeSuggestions.forEach((s) => cardsWrap.appendChild(buildSuggestionCard(s)));
@@ -253,7 +316,12 @@ function renderConversation() {
     }
   });
 
-  container.scrollTop = container.scrollHeight;
+  if (typing) {
+    const typingBubble = document.createElement("div");
+    typingBubble.className = "chat-bubble chat-bubble-model chat-bubble-typing";
+    typingBubble.innerHTML = "<span></span><span></span><span></span>";
+    container.appendChild(typingBubble);
+  }
 }
 
 async function onSend(presetText) {
@@ -269,9 +337,12 @@ async function onSend(presetText) {
   if (!text) return;
 
   const btn = document.getElementById("inspire-search-btn");
+  const wasFirstMessage = conversation.length === 0;
   conversation.push({ role: "user", text });
   input.value = "";
+  typing = true;
   renderConversation();
+  scrollToBottom();
 
   btn.disabled = true;
   btn.textContent = "…";
@@ -280,14 +351,27 @@ async function onSend(presetText) {
     const raw = await callGemini();
     const { reply, quickReplies, placeSuggestions } = extractStructured(raw);
     conversation.push({ role: "model", text: reply, quickReplies, placeSuggestions });
-    renderConversation();
+    if (wasFirstMessage) input.placeholder = FOLLOWUP_PLACEHOLDER;
   } catch (err) {
     onStatus(friendlyError(err));
     console.error(err);
   } finally {
+    typing = false;
+    renderConversation();
+    scrollToBottom();
     btn.disabled = false;
     btn.textContent = "Senden";
   }
+}
+
+function resetConversation() {
+  conversation = [];
+  resolvedSuggestions = {};
+  addedSuggestions = new Map();
+  typing = false;
+  document.getElementById("inspire-query").placeholder = EXAMPLE_PLACEHOLDER;
+  onStatus("");
+  renderConversation();
 }
 
 export function initInspire(statusCallback) {
@@ -296,6 +380,7 @@ export function initInspire(statusCallback) {
   document.getElementById("inspire-query").addEventListener("keydown", (e) => {
     if (e.key === "Enter") onSend();
   });
+  document.getElementById("inspire-reset-btn").addEventListener("click", resetConversation);
   document.getElementById("inspire-key-hint").classList.toggle("hidden", !!getGeminiKey());
   renderConversation();
 }
