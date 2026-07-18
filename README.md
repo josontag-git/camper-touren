@@ -28,6 +28,19 @@ Nach einer UX-Durchsicht behoben:
   ohne diese Angabe seine intrinsische Content-Breite statt zu schrumpfen) –
   Bilder liefen dadurch über das Modal-Layout hinaus statt intern zu
   scrollen. Fix in `css/style.css`.
+- **Nachtrag zum Galerie-Fix – Bilder erschienen als dünne, verzerrte
+  Farbstreifen:** live auf Produktion reproduziert (lokal wegen der
+  Places-API-Referrer-Sperre nicht möglich). Ursache war ein zweiter,
+  unabhängiger Flexbox-Bug: `.inspire-photo-gallery` setzt `overflow-x: auto`,
+  wodurch der Browser automatisch auch `overflow-y` auf `auto` setzt (Spec-
+  Regel: „visible" + „auto" zusammen wird zu „auto" + „auto"). Ein Flex-Item
+  mit nicht-„visible" Overflow hat als automatische Minimalgröße 0 statt
+  seiner Inhaltsgröße – dadurch durfte `.modal-panel` (Flex-Spalte mit
+  `max-height: 85vh`) die Galerie beim Schrumpfen auf quasi 0px Höhe
+  zusammendrücken (die 4px verbliebenen Pixel waren nur das `padding-bottom`),
+  die 120px hohen Fotos wurden dabei auf einen dünnen Streifen abgeschnitten.
+  Fix: `flex-shrink: 0` auf `.inspire-photo-gallery`, damit sie als Flex-Item
+  nie unter ihre Bildhöhe schrumpft.
 - **Inspire-Buttons mit Icons:** „Zu Plan hinzufügen"/„Könnte interessant
   sein" bekommen ein „✓", der jeweilige Rückgängig-Zustand zeigt jetzt
   „✕ Entfernen" statt des reinen Statustexts „Hinzugefügt"/„Vorgemerkt" –

@@ -864,6 +864,7 @@ html, body {
 
 .inspire-photo-gallery {
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
