@@ -295,11 +295,14 @@ Quelle Branch `main` / Root-Verzeichnis einstellen.
 
 ## Icons
 
-`icons/camper_app_icon.png` ist die Quelldatei ("We travel the world"-Motiv,
-2048×2048). Daraus generiert: `icon-192.png`, `icon-512.png` (normale
-App-Icons), `icon-maskable-192.png`/`icon-maskable-512.png` (mit Safe-Zone-
-Rand, damit OS-Masken nichts Wichtiges abschneiden) sowie
-`apple-touch-icon.png` (180×180, eckig – iOS rundet selbst ab).
+`icons/camper_app_icon.png` ist die Quelldatei (VW-Bus-Familienmotiv am
+Küstenberg, 2048×2048). Beim Import mit PIL randlos auf den eigentlichen
+Bildinhalt zugeschnitten (Quelldateien kommen mit weißem Rand um die
+abgerundete Karte). Daraus generiert: `icon-192.png`, `icon-512.png`
+(normale App-Icons), `icon-maskable-192.png`/`icon-maskable-512.png` (mit
+Safe-Zone-Rand in der Himmelfarbe des Motivs, damit OS-Masken nichts
+Wichtiges abschneiden) sowie `apple-touch-icon.png` (180×180, eckig – iOS
+rundet selbst ab).
 
 ## Datenmodell (Google Sheet)
 
