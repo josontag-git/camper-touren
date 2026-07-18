@@ -20,12 +20,14 @@ Nach einer UX-Durchsicht behoben:
   übersetzt; das technische Detail steht weiterhin per `console.error` in
   der Browser-Konsole.
 
-## Stand: Milestone 7 – Header-Theme, Changelog-Banner, Inspire-Feinschliff, Zeitachsen
+## Stand: Milestone 8 – Wunschliste, Header mit Tourname, Kategorien geräteübergreifend
 
-Oben wählt man den Urlaub (Picker + Stift zum Bearbeiten + „＋" für einen
-neuen Urlaub – Löschen gibt es bewusst nur noch in den Einstellungen, mit
-zweistufiger Bestätigung, siehe unten). Für den gewählten Urlaub gibt es drei
-Bereiche plus Einstellungen (floatende Bottom-Nav mit Icon + Text-Label):
+Der Header zeigt den Namen des gewählten Urlaubs (statt "Camper Touren")
+direkt mit den Trip-Aktionen daneben: Stift zum Bearbeiten, ein Auswahl-Icon
+(öffnet den nativen Urlaub-Auswahldialog) und „＋" für einen neuen Urlaub –
+Löschen gibt es bewusst nur noch in den Einstellungen, mit zweistufiger
+Bestätigung, siehe unten. Für den gewählten Urlaub gibt es drei Bereiche plus
+Einstellungen (floatende Bottom-Nav mit Icon + Text-Label):
 
 - **Inspire** – Chat mit Gemini (Google-Search-Grounding, Mehrturn-Konversation)
   für kreative Ideen zum Urlaub, mit Tipp-Indikator während der Antwort
@@ -33,11 +35,13 @@ Bereiche plus Einstellungen (floatende Bottom-Nav mit Icon + Text-Label):
   (Klick befüllt, sendet die Nachricht und scrollt automatisch ans Ende).
   Konkrete Ortsvorschläge erscheinen unter der Headline „Meine Vorschläge:"
   als Vorschau-Karten (Foto + Sterne-Bewertung aus der Google-Places-Suche)
-  mit „Zu Plan hinzufügen" (lässt sich per erneutem Klick auf „Hinzugefügt"
-  wieder entfernen) und „Details" (öffnet dieselbe Fotos/Rezensionen-
-  Detailansicht wie in Plan/Route). Braucht einen Gemini-API-Key
-  (Einstellungen), sonst nur ein Hinweis statt Chat. „Neue Inspiration" ganz
-  unten setzt die Konversation zurück auf die leere Ausgangsansicht.
+  mit drei Aktionen: „Zu Plan hinzufügen" (fest einplanen, lässt sich per
+  erneutem Klick auf „Hinzugefügt" wieder entfernen), „Details" (öffnet
+  dieselbe Fotos/Rezensionen-Detailansicht wie in Plan/Route) und „Könnte
+  interessant sein" (unverbindlich vormerken, siehe Wunschliste unten).
+  Braucht einen Gemini-API-Key (Einstellungen), sonst nur ein Hinweis statt
+  Chat. „Neue Inspiration" ganz unten setzt die Konversation zurück auf die
+  leere Ausgangsansicht.
 - **Plan** – Orte suchen (volle Google-Places-Suche: Umkreis um den aktuellen
   Standort, Foto, Sterne-Bewertung + Link zur Maps-Seite, Kategorie per Button
   wählen) oder manuell eintragen, nach Kategorie gruppiert mit Filter-Chips
@@ -46,8 +50,12 @@ Bereiche plus Einstellungen (floatende Bottom-Nav mit Icon + Text-Label):
   sobald der Urlaub Start-/Enddatum hat), oder nach aktueller Entfernung
   (Standortabfrage). Gespeicherte Orte aus einer Suche zeigen in der Liste
   ein Vorschaubild + Sterne; antippen öffnet eine Detailansicht mit weiteren
-  Fotos und Rezensionen. Orte ohne Kategorie (u. a. alle aus Inspire
-  hinzugefügten) laufen unter „Noch nicht eingeplante Orte".
+  Fotos und Rezensionen. Orte ohne Kategorie (u. a. alle aus Inspire fest
+  hinzugefügten) laufen unter „Noch nicht eingeplante Orte". Ganz oben
+  erscheint zusätzlich, falls vorhanden, der Block „💡 Könnte interessant
+  sein" – eine lose Wunschliste (z. B. aus Inspire vorgemerkte Orte) mit „Zu
+  Plan verschieben" (fest einplanen) oder „✕" (verwerfen) je Eintrag,
+  komplett getrennt von den normalen Kategorie-/Datum-/Entfernung-Ansichten.
 - **Route** – Karte (Google Maps JavaScript API) mit ALLEN Orten des Urlaubs,
   die Koordinaten haben – Marker nach Kategorie eingefärbt –, Liste darunter
   (ebenfalls mit Vorschaubild/Sterne + antippbarer Detailansicht). Hat der
@@ -59,13 +67,14 @@ Bereiche plus Einstellungen (floatende Bottom-Nav mit Icon + Text-Label):
 - **Einstellungen** – Apps-Script-URL, Gemini-API-Key, Farbschema,
   Header-Hintergrund, sowie Urlaubs- und Kategorienverwaltung (siehe unten).
 
-Der Header zeigt ein festes, in den Einstellungen wählbares Hintergrundmotiv
-(mehrere Meer-Varianten, Berge, Wald, Wüste, Sternenhimmel oder keins) –
-reine CSS-Gradients, keine echten Fotos. Direkt darunter klebt ein
-Changelog-Banner mit einem kurzen Hinweis auf die letzte nennenswerte
-Änderung, per „✕" dauerhaft ausblendbar (erscheint erst wieder, wenn sich der
-Text beim nächsten Release ändert). Am oberen Rand nach unten ziehen
-(Pull-to-Refresh) lädt Urlaube/Orte neu.
+Direkt unter dem Header klebt ein Changelog-Banner mit einem kurzen Hinweis
+auf die letzte nennenswerte Änderung, per „✕" dauerhaft ausblendbar
+(erscheint erst wieder, wenn sich der Text beim nächsten Release ändert).
+Ganz unten, unterhalb der Fußnavigation, steht klein die aktuelle
+App-Shell-Version (aus `service-worker.js` `CACHE_VERSION`, live geladen) –
+hilfreich, um zu erkennen, ob ein Gerät noch eine alte, gecachte Version
+zeigt. Am oberen Rand nach unten ziehen (Pull-to-Refresh) lädt Urlaube/Orte
+neu.
 
 ### Design
 
@@ -90,12 +99,22 @@ inline eingeblendete Bestätigung ("Wirklich löschen? Ja, löschen / Abbrechen"
 
 Unter **Einstellungen → Kategorien verwalten** lassen sich die Orts-
 Kategorien umbenennen, umfärben, löschen oder neu anlegen. Kategorien gelten
-global für die gesamte App (nicht pro Urlaub) und werden in `localStorage`
-gespeichert (`js/categories.js`, Key `campingAppCategories`) – Standard sind
-Camping/Sport/Sightseeing/Restaurant/Sonstiges. Änderungen wirken sich sofort
-auf Plan (Gruppierung/Filter) und Route (Marker-Farben) aus; Ansichten, die
-beim Ändern gerade nicht aktiv sind, übernehmen den neuen Stand beim nächsten
-Rendern (z. B. Tab-Wechsel mit State-Änderung oder Neuladen).
+global für die gesamte App (nicht pro Urlaub) und laufen seit Milestone 8
+**über das Google Sheet** (neuer Tab `Categories`, siehe Datenmodell) statt
+nur in `localStorage` – damit sind sie jetzt geräteübergreifend synchron,
+genau wie Trips/Places. Standard sind
+Camping/Sport/Sightseeing/Restaurant/Sonstiges. Beim allerersten Laden nach
+dem Umstieg werden ein evtl. vorhandener alter `localStorage`-Stand (oder
+sonst die Standardkategorien) einmalig ins Sheet übernommen.
+
+**Wichtig:** Das setzt voraus, dass die Apps-Script-Bereitstellung den
+`Categories`-Tab bereits kennt (siehe "App mit dem Sheet verbinden" – neue
+Version bereitstellen). Erkennt die App eine noch nicht aktualisierte
+Bereitstellung (die Antwort enthält kein `categories`-Feld), bleiben
+Kategorien automatisch im alten, rein lokalen `localStorage`-Modus – es wird
+in dem Fall **nichts** ins Sheet geschrieben, um keine falschen Zeilen in
+Trips/Places anzulegen. Änderungen wirken sich sofort auf Plan (Gruppierung/
+Filter) und Route (Marker-Farben) aus.
 
 Dateien:
 - `index.html`, `css/style.css`, `manifest.webmanifest`, `service-worker.js`
@@ -106,7 +125,8 @@ Dateien:
 - `js/header-theme.js` – Header-Hintergrundmotiv-Verwaltung (feste
   CSS-Gradient-Auswahl, kein Foto-Zugriff)
 - `js/changelog.js` – Text + Dismiss-Status für das "Was ist neu"-Banner
-- `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Chip-Rendering
+- `js/categories.js` – Kategorie-Definitionen (Name+Farbe) + Chip-Rendering,
+  synchron über das Sheet (mit lokalem Fallback, siehe Kategorienverwaltung)
 - `js/maps-loader.js` – lädt die Google Maps JavaScript API einmalig nach
   (gemeinsam genutzt von Route für die Karte und Plan für die Orts-Suche)
 - `js/places-search.js` – gemeinsame Places-Text-Search-Helper (Foto-URL,
@@ -265,14 +285,18 @@ fehlende Kopfzeilen-Spalten werden beim nächsten Zugriff automatisch ergänzt
 (additive Migration in `getOrCreateSheet`, bestehende Zeilen bleiben unberührt):
 
 - `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt`
-- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt, photoRef, rating, userRatingCount`
+- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt, photoRef, rating, userRatingCount, status`
+- `Categories`: `id, label, color`
 
 `photoRef`/`rating`/`userRatingCount` werden nur bei Orten aus einer
 Places-Suche befüllt (Plan-Suche oder Inspire-Vorschau) – manuell angelegte
 Orte bleiben dort leer, Listen zeigen dann wie bisher nur Text ohne
-Vorschaubild/Sterne. **Nach dem Update von `Code.gs`** muss im Sheet wie
-gewohnt eine neue Version der Apps-Script-Bereitstellung erstellt werden
-(siehe oben, "App mit dem Sheet verbinden").
+Vorschaubild/Sterne. `status` ist `""` (fest eingeplant) oder `"interested"`
+("Könnte interessant sein", siehe Wunschliste in Plan). **Nach dem Update
+von `Code.gs`** muss im Sheet wie gewohnt eine neue Version der
+Apps-Script-Bereitstellung erstellt werden (siehe oben, "App mit dem Sheet
+verbinden") – bis dahin bleiben Kategorien lokal (siehe
+Kategorienverwaltung), Trips/Places funktionieren unverändert weiter.
 
 ## Mögliche nächste Schritte
 

@@ -15,7 +15,7 @@ function formatDateRange(trip) {
 }
 
 function renderPicker() {
-  const { trips, currentTripId } = getState();
+  const { trips, currentTripId, currentTrip } = getState();
   const picker = document.getElementById("trip-picker");
   picker.innerHTML = "";
 
@@ -36,6 +36,7 @@ function renderPicker() {
 
   picker.value = currentTripId || (trips[0]?.id ?? NEW_TRIP_VALUE);
 
+  document.getElementById("header-trip-name").textContent = currentTrip?.name || "Camper Touren";
   document.getElementById("edit-trip-btn").disabled = !currentTripId;
 }
 

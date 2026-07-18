@@ -13,7 +13,7 @@ import { initPlan } from "./plan.js";
 import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
-import { renderCategoriesSettings } from "./categories.js";
+import { renderCategoriesSettings, loadCategories } from "./categories.js";
 import { friendlyError } from "./errors.js";
 import { LATEST_CHANGE, isChangelogDismissed, dismissChangelog } from "./changelog.js";
 
@@ -38,6 +38,21 @@ function initOfflineBanner() {
   window.addEventListener("online", update);
   window.addEventListener("offline", update);
   update();
+}
+
+// Zeigt CACHE_VERSION aus service-worker.js an (frisch vom Netz geladen,
+// nicht aus dem HTTP-Cache) – so lässt sich erkennen, ob das Gerät noch auf
+// einem alten App-Shell-Stand hängt.
+async function initVersionFooter() {
+  const el = document.getElementById("app-version");
+  try {
+    const res = await fetch("./service-worker.js", { cache: "no-store" });
+    const text = await res.text();
+    const match = text.match(/CACHE_VERSION\s*=\s*"([^"]+)"/);
+    el.textContent = match ? `Version: ${match[1]}` : "";
+  } catch {
+    el.textContent = "";
+  }
 }
 
 function initChangelogBanner() {
@@ -75,6 +90,7 @@ async function loadTrips() {
   try {
     const trips = await getTrips();
     setTrips(trips);
+    await loadCategories();
     setStatus(wasLastLoadOffline() ? "Offline – zeige zuletzt gespeicherten Stand." : "");
     if (trips.length === 0) openNewTripForm();
   } catch (err) {
@@ -125,7 +141,9 @@ function initSettingsUI() {
   });
 
   initTripsSettings();
-  renderCategoriesSettings(document.getElementById("settings-categories-container"));
+  const categoriesContainer = document.getElementById("settings-categories-container");
+  subscribe(() => renderCategoriesSettings(categoriesContainer));
+  renderCategoriesSettings(categoriesContainer);
 }
 
 function init() {
@@ -134,6 +152,7 @@ function init() {
   initNav();
   initOfflineBanner();
   initChangelogBanner();
+  initVersionFooter();
   initSettingsUI();
   initTripBar(setStatus);
   initPlan(setStatus);

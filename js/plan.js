@@ -38,6 +38,17 @@ function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 }
 
+// Orte mit status "interested" ("Könnte interessant sein", z. B. aus Inspire)
+// sind eine lose Wunschliste und laufen separat von den normalen
+// Kategorie-/Datum-/Entfernung-Ansichten – siehe renderInterestedList().
+function plannedPlaces() {
+  return sortedPlaces().filter((p) => (p.status || "") !== "interested");
+}
+
+function interestedPlaces() {
+  return getState().places.filter((p) => p.status === "interested");
+}
+
 function hasCoords(place) {
   return place.lat !== "" && place.lat != null && place.lng !== "" && place.lng != null && !Number.isNaN(Number(place.lat));
 }
@@ -51,7 +62,7 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 function groupedByCategory() {
-  const all = sortedPlaces();
+  const all = plannedPlaces();
   return [...getCategories(), UNCATEGORIZED].map((cat) => ({
     ...cat,
     places: all.filter((p) => (p.category || "") === cat.id),
@@ -59,7 +70,7 @@ function groupedByCategory() {
 }
 
 function groupedByDate() {
-  const all = sortedPlaces();
+  const all = plannedPlaces();
   const withDate = all.filter((p) => p.arrivalDate);
   const withoutDate = all.filter((p) => !p.arrivalDate);
   const dates = [...new Set(withDate.map((p) => p.arrivalDate))].sort();
@@ -363,6 +374,74 @@ function requestUserPosition() {
   );
 }
 
+async function onMoveToPlan(place) {
+  const record = { ...place, status: "" };
+  try {
+    await updatePlace(record);
+    setPlaces(getState().places.map((p) => (p.id === place.id ? record : p)));
+  } catch (err) {
+    onStatus(`Fehler beim Verschieben: ${friendlyError(err)}`);
+    console.error(err);
+  }
+}
+
+async function onRemoveInterested(place) {
+  if (!window.confirm(`"${place.name || "Ort"}" wirklich entfernen?`)) return;
+  try {
+    await deletePlace(place.id);
+    setPlaces(getState().places.filter((p) => p.id !== place.id));
+  } catch (err) {
+    onStatus(`Fehler beim Entfernen: ${friendlyError(err)}`);
+    console.error(err);
+  }
+}
+
+function renderInterestedList() {
+  const wrap = document.getElementById("interested-places");
+  const list = document.getElementById("interested-places-list");
+  const items = interestedPlaces();
+  wrap.classList.toggle("hidden", items.length === 0);
+  list.innerHTML = "";
+
+  items.forEach((place) => {
+    const li = document.createElement("li");
+    li.className = "trip-item";
+    li.style.setProperty("--category-color", categoryInfo(place.category).color);
+
+    let thumb = null;
+    if (place.photoRef) {
+      thumb = document.createElement("img");
+      thumb.className = "place-thumb";
+      thumb.src = photoUrl(place.photoRef, 120);
+      thumb.alt = "";
+    }
+
+    const info = document.createElement("div");
+    info.className = "trip-info";
+    const title = document.createElement("div");
+    title.className = "trip-title";
+    title.textContent = place.name || "(ohne Namen)";
+    const meta = document.createElement("div");
+    meta.className = "trip-meta";
+    meta.textContent = place.rating ? `${starRating(place.rating)} ${place.rating}` : formatMeta(place);
+    info.append(title, meta);
+
+    const moveBtn = document.createElement("button");
+    moveBtn.className = "btn btn-ghost-dark";
+    moveBtn.textContent = "Zu Plan verschieben";
+    moveBtn.addEventListener("click", () => onMoveToPlan(place));
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "trip-icon-btn";
+    removeBtn.textContent = "✕";
+    removeBtn.setAttribute("aria-label", "Entfernen");
+    removeBtn.addEventListener("click", () => onRemoveInterested(place));
+
+    li.append(...(thumb ? [thumb] : []), info, moveBtn, removeBtn);
+    list.appendChild(li);
+  });
+}
+
 function renderGroups(groups, list) {
   let visibleCount = 0;
   groups.forEach((group) => {
@@ -391,7 +470,7 @@ function renderDistanceMode(list) {
     }
     return 0;
   }
-  const all = sortedPlaces().filter((p) => isCategoryVisible(p.category || ""));
+  const all = plannedPlaces().filter((p) => isCategoryVisible(p.category || ""));
   const withCoords = all.filter(hasCoords).map((p) => ({
     ...p,
     __distance: haversineKm(userPosition.lat, userPosition.lng, Number(p.lat), Number(p.lng)),
@@ -709,9 +788,11 @@ function render() {
   if (!currentTrip) {
     document.getElementById("plan-empty").classList.remove("hidden");
     document.getElementById("add-place-btn").disabled = true;
+    document.getElementById("interested-places").classList.add("hidden");
     return;
   }
   document.getElementById("add-place-btn").disabled = false;
+  renderInterestedList();
 
   if (places.length > 0) {
     renderCategoryFilterChips(filtersEl, isCategoryVisible, (catId) => {

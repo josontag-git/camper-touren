@@ -6,7 +6,7 @@
 
 import { getGeminiKey } from "./settings.js";
 import { getState, setPlaces } from "./state.js";
-import { createPlace, deletePlace } from "./api.js";
+import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
 import { friendlyError } from "./errors.js";
@@ -19,7 +19,7 @@ const FOLLOWUP_PLACEHOLDER = "Deine Antwort …";
 let onStatus = () => {};
 let conversation = []; // [{ role: "user"|"model", text, quickReplies?, placeSuggestions? }]
 let resolvedSuggestions = {}; // key (name+query) -> { status: "loading"|"done"|"error", place? }
-let addedSuggestions = new Map(); // key -> placeId des angelegten Plan-Eintrags
+let addedSuggestions = new Map(); // key -> { placeId, status } des angelegten Plan-Eintrags
 let typing = false; // Tipp-Indikator während auf Gemini gewartet wird
 
 function suggestionKey(s) {
@@ -113,17 +113,21 @@ async function resolveSuggestion(suggestion) {
   renderConversation();
 }
 
-async function addSuggestionToPlan(suggestion, place, btn) {
+// status: "" = fest eingeplant, "interested" = "Könnte interessant sein".
+// Legt neu an oder hebt einen bestehenden Eintrag auf den neuen Status
+// (z. B. Upgrade von vorgemerkt auf fest eingeplant).
+async function saveSuggestion(suggestion, place, status, btn) {
   const { currentTripId, places } = getState();
   if (!currentTripId) {
     onStatus("Bitte zuerst einen Urlaub auswählen oder anlegen.");
     return;
   }
   const key = suggestionKey(suggestion);
+  const existing = addedSuggestions.get(key);
   btn.disabled = true;
   btn.textContent = "Speichert …";
   const record = {
-    id: crypto.randomUUID(),
+    id: existing?.placeId || crypto.randomUUID(),
     tripId: currentTripId,
     order: places.length,
     name: place.displayName?.text || suggestion.name,
@@ -139,38 +143,42 @@ async function addSuggestionToPlan(suggestion, place, btn) {
     photoRef: place.photos?.[0]?.name || "",
     rating: place.rating ?? "",
     userRatingCount: place.userRatingCount ?? "",
+    status,
   };
 
   try {
-    await createPlace(record);
-    setPlaces([...places, record]);
-    addedSuggestions.set(key, record.id);
-    onStatus(`"${record.name}" zum Plan hinzugefügt.`);
+    if (existing) {
+      await updatePlace(record);
+      setPlaces(places.map((p) => (p.id === record.id ? record : p)));
+    } else {
+      await createPlace(record);
+      setPlaces([...places, record]);
+    }
+    addedSuggestions.set(key, { placeId: record.id, status });
+    onStatus(status === "interested" ? `"${record.name}" vorgemerkt.` : `"${record.name}" zum Plan hinzugefügt.`);
     renderConversation();
   } catch (err) {
-    btn.disabled = false;
-    btn.textContent = "Zu Plan hinzufügen";
     onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
     console.error(err);
+    renderConversation();
   }
 }
 
-async function removeSuggestionFromPlan(suggestion, btn) {
+async function removeSuggestion(suggestion, btn) {
   const key = suggestionKey(suggestion);
-  const placeId = addedSuggestions.get(key);
-  if (!placeId) return;
+  const existing = addedSuggestions.get(key);
+  if (!existing) return;
   btn.disabled = true;
   btn.textContent = "Entfernt …";
   try {
-    await deletePlace(placeId);
-    setPlaces(getState().places.filter((p) => p.id !== placeId));
+    await deletePlace(existing.placeId);
+    setPlaces(getState().places.filter((p) => p.id !== existing.placeId));
     addedSuggestions.delete(key);
     renderConversation();
   } catch (err) {
-    btn.disabled = false;
-    btn.textContent = "Hinzugefügt";
     onStatus(`Fehler beim Entfernen: ${friendlyError(err)}`);
     console.error(err);
+    renderConversation();
   }
 }
 
@@ -229,16 +237,18 @@ function buildSuggestionCard(suggestion) {
     card.appendChild(addr);
   }
 
+  const existing = addedSuggestions.get(key);
+  const currentStatus = existing?.status; // undefined | "interested" | ""
+
   const actions = document.createElement("div");
   actions.className = "inspire-card-actions";
 
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary";
-  const alreadyAdded = addedSuggestions.has(key);
-  addBtn.textContent = alreadyAdded ? "Hinzugefügt" : "Zu Plan hinzufügen";
+  addBtn.textContent = currentStatus === "" ? "Hinzugefügt" : "Zu Plan hinzufügen";
   addBtn.addEventListener("click", () => {
-    if (alreadyAdded) removeSuggestionFromPlan(suggestion, addBtn);
-    else addSuggestionToPlan(suggestion, place, addBtn);
+    if (currentStatus === "") removeSuggestion(suggestion, addBtn);
+    else saveSuggestion(suggestion, place, "", addBtn);
   });
   actions.appendChild(addBtn);
 
@@ -254,6 +264,23 @@ function buildSuggestionCard(suggestion) {
   }
 
   card.appendChild(actions);
+
+  // Zweite Aktionszeile für "Könnte interessant sein" – nicht mehr nötig,
+  // sobald der Ort schon fest eingeplant ist (kein Downgrade über den Button).
+  if (currentStatus !== "") {
+    const secondaryActions = document.createElement("div");
+    secondaryActions.className = "inspire-card-actions inspire-card-actions-secondary";
+
+    const interestBtn = document.createElement("button");
+    interestBtn.className = "btn btn-ghost-dark";
+    interestBtn.textContent = currentStatus === "interested" ? "Vorgemerkt" : "Könnte interessant sein";
+    interestBtn.addEventListener("click", () => {
+      if (currentStatus === "interested") removeSuggestion(suggestion, interestBtn);
+      else saveSuggestion(suggestion, place, "interested", interestBtn);
+    });
+    secondaryActions.appendChild(interestBtn);
+    card.appendChild(secondaryActions);
+  }
 
   return card;
 }

@@ -40,8 +40,9 @@ html, body {
 
 .app-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: env(safe-area-inset-top, 0) 20px 18px;
   padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
   min-height: 84px;
@@ -73,6 +74,33 @@ html, body {
   font-weight: 700;
   letter-spacing: -0.01em;
   text-shadow: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-trip-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.trip-switcher {
+  position: relative;
+  display: flex;
+}
+
+.trip-picker-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: none;
+  cursor: pointer;
 }
 
 .app-header--photo h1 {
@@ -236,6 +264,20 @@ html, body {
   letter-spacing: -0.01em;
 }
 
+.app-version {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(2px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  text-align: center;
+  font-size: 0.62rem;
+  color: var(--color-muted);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 5;
+}
+
 .nav-item.is-active {
   background: #fff;
   color: var(--color-primary);
@@ -253,6 +295,24 @@ html, body {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 12px;
+}
+
+.interested-places {
+  margin-bottom: 16px;
+}
+
+.interested-places-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.interested-places .trip-item {
+  gap: 10px;
+}
+
+.interested-places .btn {
+  flex-shrink: 0;
 }
 
 .trips-list {
@@ -402,35 +462,14 @@ html, body {
   margin-top: 8px;
 }
 
-/* Trip-Bar */
+/* Trip-Aktionen im Header (Bearbeiten/Auswählen/Neuer Urlaub) */
 
-.trip-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 20px 16px;
-  background: var(--color-bg);
-}
-
-.trip-picker {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 12px 18px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-card);
-}
-
-.trip-bar .trip-icon-btn {
+.header-trip-actions .trip-icon-btn {
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
 
-.trip-bar .trip-icon-btn:disabled {
+.header-trip-actions .trip-icon-btn:disabled {
   opacity: 0.3;
   cursor: default;
   box-shadow: none;
@@ -748,6 +787,10 @@ html, body {
 .inspire-card-actions .btn {
   margin-top: 0;
   flex: 1;
+}
+
+.inspire-card-actions-secondary {
+  margin-top: 8px;
 }
 
 .inspire-card-photo {

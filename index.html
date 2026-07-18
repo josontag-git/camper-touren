@@ -21,19 +21,23 @@
   <div id="app">
     <div class="app-sticky">
       <header class="app-header">
-        <h1>Camper Touren</h1>
+        <h1 id="header-trip-name">Camper Touren</h1>
+        <div class="header-trip-actions">
+          <button id="edit-trip-btn" class="trip-icon-btn" aria-label="Urlaub bearbeiten">✎</button>
+          <div class="trip-switcher">
+            <button class="trip-icon-btn" tabindex="-1" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <select id="trip-picker" class="trip-picker-overlay" aria-label="Urlaub auswählen"></select>
+          </div>
+          <button id="add-trip-btn" class="trip-icon-btn" aria-label="Neuer Urlaub">＋</button>
+        </div>
       </header>
 
       <div id="changelog-banner" class="changelog-banner hidden">
         <span id="changelog-banner-text"></span>
         <button id="changelog-banner-close" aria-label="Schließen">✕</button>
       </div>
-    </div>
-
-    <div id="trip-bar" class="trip-bar">
-      <select id="trip-picker" class="trip-picker" aria-label="Urlaub auswählen"></select>
-      <button id="edit-trip-btn" class="trip-icon-btn" aria-label="Urlaub bearbeiten">✎</button>
-      <button id="add-trip-btn" class="trip-icon-btn" aria-label="Neuer Urlaub">＋</button>
     </div>
 
     <main id="view-root">
@@ -70,6 +74,10 @@
           <button id="add-place-btn" class="btn btn-primary">+ Ort hinzufügen</button>
         </div>
         <div id="place-add-container"></div>
+        <div id="interested-places" class="interested-places hidden">
+          <h3 class="interested-places-heading">💡 Könnte interessant sein</h3>
+          <ul id="interested-places-list" class="trips-list"></ul>
+        </div>
         <div class="view-mode-switch">
           <button class="view-mode-btn is-active" data-mode="category">Kategorie</button>
           <button class="view-mode-btn" data-mode="date">Datum</button>
@@ -151,6 +159,8 @@
         <span>Einstellungen</span>
       </button>
     </nav>
+
+    <p id="app-version" class="app-version"></p>
 
     <div id="place-detail-modal" class="hidden"></div>
   </div>

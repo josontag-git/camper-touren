@@ -10,20 +10,29 @@ const SHEET_PLACES = "Places";
 const PLACES_HEADERS = [
   "id", "tripId", "order", "name", "lat", "lng", "address",
   "category", "arrivalDate", "departureDate", "note", "placeId", "createdAt",
-  "photoRef", "rating", "userRatingCount",
+  "photoRef", "rating", "userRatingCount", "status",
 ];
+
+const SHEET_CATEGORIES = "Categories";
+const CATEGORIES_HEADERS = ["id", "label", "color"];
+
+const ENTITIES = {
+  trip: [SHEET_TRIPS, TRIPS_HEADERS],
+  place: [SHEET_PLACES, PLACES_HEADERS],
+  category: [SHEET_CATEGORIES, CATEGORIES_HEADERS],
+};
 
 function doGet(e) {
   return jsonResponse({
     trips: readSheet(SHEET_TRIPS, TRIPS_HEADERS),
     places: readSheet(SHEET_PLACES, PLACES_HEADERS),
+    categories: readSheet(SHEET_CATEGORIES, CATEGORIES_HEADERS),
   });
 }
 
 function doPost(e) {
   const data = JSON.parse(e.postData.contents);
-  const sheetName = data.entity === "place" ? SHEET_PLACES : SHEET_TRIPS;
-  const headers = data.entity === "place" ? PLACES_HEADERS : TRIPS_HEADERS;
+  const [sheetName, headers] = ENTITIES[data.entity] || ENTITIES.trip;
   const sheet = getOrCreateSheet(sheetName, headers);
 
   if (data.action === "delete") {

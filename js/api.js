@@ -57,6 +57,15 @@ export async function getPlaces(tripId) {
   return tripId ? places.filter((p) => p.tripId === tripId) : places;
 }
 
+// null = Apps-Script-Bereitstellung kennt "categories" noch nicht (Code.gs
+// wurde noch nicht neu bereitgestellt) -> categories.js darf dann NICHT
+// versuchen, Kategorien ins Sheet zu schreiben (der alte doPost würde einen
+// "category"-Upsert sonst fälschlich als Trip/Place-Zeile ablegen).
+export async function getCategoriesData() {
+  const data = cache || (await fetchAll());
+  return Array.isArray(data.categories) ? data.categories : null;
+}
+
 export function createTrip(trip) {
   return postAction("trip", "upsert", trip);
 }
@@ -79,4 +88,16 @@ export function updatePlace(place) {
 
 export function deletePlace(id) {
   return postAction("place", "delete", { id });
+}
+
+export function createCategory(category) {
+  return postAction("category", "upsert", category);
+}
+
+export function updateCategory(category) {
+  return postAction("category", "upsert", category);
+}
+
+export function deleteCategory(id) {
+  return postAction("category", "delete", { id });
 }
