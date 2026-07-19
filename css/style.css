@@ -465,8 +465,63 @@ html, body {
 
 .settings-view h2 {
   font-size: 1.05rem;
-  margin: 0 0 4px;
+  margin: 0;
   font-weight: 700;
+}
+
+.settings-view-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-bottom: 4px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-view-chevron {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-muted);
+  transition: transform 0.15s ease-out;
+}
+
+.settings-view.is-collapsed .settings-view-chevron {
+  transform: rotate(-90deg);
+}
+
+.settings-view-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-view.is-collapsed .settings-view-body {
+  display: none;
+}
+
+.settings-view-body .admin-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 0;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.admin-checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-accent);
 }
 
 .settings-view label {

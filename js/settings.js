@@ -2,6 +2,7 @@
 
 const STORAGE_SCRIPT_URL = "campingAppScriptUrl";
 const STORAGE_GEMINI_KEY = "campingAppGeminiKey";
+const STORAGE_PARK4NIGHT_AMENITIES = "campingAppPark4nightAmenities";
 
 // Vorbelegt mit der Apps-Script-Web-App-URL des Camper-Sheets, damit die App
 // ohne manuelle Einrichtung sofort nutzbar ist. In den Einstellungen änderbar
@@ -28,4 +29,20 @@ export function setGeminiKey(key) {
   const trimmed = key.trim();
   if (trimmed) localStorage.setItem(STORAGE_GEMINI_KEY, trimmed);
   else localStorage.removeItem(STORAGE_GEMINI_KEY);
+}
+
+// Pflicht-Ausstattungsmerkmale für park4night-Suchen (Plan + Inspire, siehe
+// js/park4night.js). Leere Liste = kein Filter, alle Treffer sichtbar.
+export function getPark4nightRequiredAmenities() {
+  try {
+    const raw = localStorage.getItem(STORAGE_PARK4NIGHT_AMENITIES);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setPark4nightRequiredAmenities(keys) {
+  localStorage.setItem(STORAGE_PARK4NIGHT_AMENITIES, JSON.stringify(keys));
 }

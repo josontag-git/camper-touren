@@ -59,7 +59,7 @@
         <p id="inspire-key-hint" class="banner hidden">
           Kein Gemini-API-Key hinterlegt. Kostenlos erstellbar auf
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>,
-          dann unter Einstellungen eintragen.
+          dann unter Admin eintragen.
         </p>
         <div id="inspire-results" class="inspire-chat"></div>
         <div class="inspire-search">
@@ -101,49 +101,78 @@
       </section>
 
       <section id="settings-view" class="hidden">
-        <div class="settings-view">
-          <h2>Einstellungen</h2>
-
-          <label for="script-url-input">Apps-Script-Web-App-URL</label>
-          <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
-
-          <label for="gemini-key-input">Gemini-API-Key (für Inspire)</label>
-          <input id="gemini-key-input" type="text" placeholder="AIza…" />
-
-          <label for="color-theme-select">Farbschema</label>
-          <select id="color-theme-select"></select>
-
-          <label for="header-theme-select">Header-Hintergrund</label>
-          <select id="header-theme-select"></select>
-
-          <p class="muted">
-            Apps-Script-URL: Erweiterungen → Apps Script → Bereitstellen → Web App
-            (Details siehe README). Gemini-Key: kostenlos auf aistudio.google.com.
-          </p>
-          <button id="save-settings-btn" class="btn btn-primary">Speichern</button>
-          <p id="settings-status" class="muted"></p>
-          <button id="clear-cache-btn" class="btn btn-ghost-dark">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            Cache leeren &amp; neu laden
+        <div class="settings-view" data-collapsible-id="general">
+          <button type="button" class="settings-view-toggle">
+            <h2>Allgemein</h2>
+            <svg class="settings-view-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </button>
+          <div class="settings-view-body">
+            <label for="script-url-input">Apps-Script-Web-App-URL</label>
+            <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
+
+            <label for="gemini-key-input">Gemini-API-Key (für Inspire)</label>
+            <input id="gemini-key-input" type="text" placeholder="AIza…" />
+
+            <label for="color-theme-select">Farbschema</label>
+            <select id="color-theme-select"></select>
+
+            <label for="header-theme-select">Header-Hintergrund</label>
+            <select id="header-theme-select"></select>
+
+            <p class="muted">
+              Apps-Script-URL: Erweiterungen → Apps Script → Bereitstellen → Web App
+              (Details siehe README). Gemini-Key: kostenlos auf aistudio.google.com.
+            </p>
+            <button id="save-settings-btn" class="btn btn-primary">Speichern</button>
+            <p id="settings-status" class="muted"></p>
+            <button id="clear-cache-btn" class="btn btn-ghost-dark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Cache leeren &amp; neu laden
+            </button>
+          </div>
         </div>
 
-        <div class="settings-view">
-          <h2>Urlaube verwalten</h2>
-          <p class="muted">
-            Löschen entfernt den Urlaub und alle zugehörigen Orte unwiderruflich
-            – dafür ist eine zweite Bestätigung nötig.
-          </p>
-          <ul id="settings-trips-list" class="trips-list"></ul>
+        <div class="settings-view" data-collapsible-id="trips">
+          <button type="button" class="settings-view-toggle">
+            <h2>Urlaube verwalten</h2>
+            <svg class="settings-view-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="settings-view-body">
+            <p class="muted">
+              Löschen entfernt den Urlaub und alle zugehörigen Orte unwiderruflich
+              – dafür ist eine zweite Bestätigung nötig.
+            </p>
+            <ul id="settings-trips-list" class="trips-list"></ul>
+          </div>
         </div>
 
-        <div class="settings-view">
-          <h2>Kategorien verwalten</h2>
-          <p class="muted">
-            Gilt für die gesamte App (nicht pro Urlaub). Name/Farbe ändern und
-            mit ✓ speichern, oder neue Kategorie unten hinzufügen.
-          </p>
-          <div id="settings-categories-container"></div>
+        <div class="settings-view" data-collapsible-id="categories">
+          <button type="button" class="settings-view-toggle">
+            <h2>Kategorien verwalten</h2>
+            <svg class="settings-view-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="settings-view-body">
+            <p class="muted">
+              Gilt für die gesamte App (nicht pro Urlaub). Name/Farbe ändern und
+              mit ✓ speichern, oder neue Kategorie unten hinzufügen.
+            </p>
+            <div id="settings-categories-container"></div>
+          </div>
+        </div>
+
+        <div class="settings-view" data-collapsible-id="park4night">
+          <button type="button" class="settings-view-toggle">
+            <h2>park4night-Einstellungen</h2>
+            <svg class="settings-view-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="settings-view-body">
+            <p class="muted">
+              Nur Orte mit den ausgewählten Ausstattungsmerkmalen werden
+              angezeigt (gilt für Plan und Inspire). Keine Auswahl = alle
+              Treffer.
+            </p>
+            <div id="park4night-amenity-filters"></div>
+          </div>
         </div>
       </section>
     </main>
@@ -163,7 +192,7 @@
       </button>
       <button class="nav-item" data-view="settings-view">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>Einstellungen</span>
+        <span>Admin</span>
       </button>
     </nav>
 

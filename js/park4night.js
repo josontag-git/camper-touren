@@ -12,6 +12,7 @@
 // für beide Quellen weiterverwenden, siehe README.
 
 import { searchPark4night, getPark4nightReviews } from "./api.js";
+import { getPark4nightRequiredAmenities } from "./settings.js";
 
 const AMENITY_LABELS = {
   point_eau: "Frischwasser",
@@ -42,6 +43,13 @@ const AMENITY_LABELS = {
   caravaneige: "Winterstellplatz (Caravaneige)",
 };
 
+// Alltagsrelevante Teilmenge der Ausstattungsmerkmale, im Admin-Bereich als
+// Filter-Checkboxen wählbar (siehe js/main.js initPark4nightAdminUI()) --
+// bewusst nicht alle 25 Flags, um die Auswahl überschaubar zu halten.
+export const ADMIN_AMENITY_OPTIONS = [
+  "wc_public", "douche", "electricite", "point_eau", "wifi", "animaux",
+].map((key) => ({ key, label: AMENITY_LABELS[key] }));
+
 // Nur Flags mit Wert "1" als lesbare, kommaseparierte Liste, z. B.
 // "Frischwasser, Strom, Dusche, WLAN" -- wird als Notiz vorbefüllt.
 function amenityNote(p4n) {
@@ -70,9 +78,20 @@ function toPlaceShape(p4n) {
   };
 }
 
-export async function searchPark4nightNear(lat, lng) {
+// campingOnly: nur Treffer mit code "C" (echte Campingplätze, per Live-Test
+// gegen die API bestätigt -- siehe README). Ausstattungsfilter kommt aus den
+// Admin-Einstellungen und gilt unabhängig von campingOnly für jeden Aufruf
+// (Plan und Inspire) -- die API unterstützt keine Server-seitige Filterung
+// (mehrere Query-Parameter-Varianten getestet, wirkungslos), daher hier auf
+// den bereits vorhandenen Ausstattungs-Flags der Antwort.
+export async function searchPark4nightNear(lat, lng, { campingOnly = false } = {}) {
   try {
-    const results = await searchPark4night(lat, lng);
+    let results = await searchPark4night(lat, lng);
+    if (campingOnly) results = results.filter((p) => p.code === "C");
+    const required = getPark4nightRequiredAmenities();
+    if (required.length) {
+      results = results.filter((p) => required.every((key) => p[key] === "1"));
+    }
     return results.map(toPlaceShape);
   } catch {
     return [];

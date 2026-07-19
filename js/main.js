@@ -4,7 +4,10 @@
 
 import { registerServiceWorker } from "./sw-register.js";
 import { getTrips, getPlaces, wasLastLoadOffline } from "./api.js";
-import { getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey } from "./settings.js";
+import {
+  getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey,
+  getPark4nightRequiredAmenities, setPark4nightRequiredAmenities,
+} from "./settings.js";
 import { getColorTheme, setColorTheme, applyColorTheme, THEMES } from "./theme.js";
 import { getHeaderTheme, setHeaderTheme, applyHeaderTheme, HEADER_THEMES } from "./header-theme.js";
 import { getState, subscribe, setTrips, setPlaces } from "./state.js";
@@ -14,6 +17,7 @@ import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
 import { renderCategoriesSettings, loadCategories } from "./categories.js";
+import { ADMIN_AMENITY_OPTIONS } from "./park4night.js";
 import { friendlyError } from "./errors.js";
 import { LATEST_CHANGE, isChangelogDismissed, dismissChangelog } from "./changelog.js";
 
@@ -78,6 +82,48 @@ async function clearAppCache() {
   } finally {
     location.reload();
   }
+}
+
+// Checkbox-Liste im Admin-Bereich für die park4night-Ausstattungsfilter
+// (js/park4night.js searchPark4nightNear()) -- speichert bei jedem Toggle
+// sofort, kein separater Speichern-Button (gleiches Verhalten wie die
+// Farbschema-/Header-Selects daneben).
+function initPark4nightAdminUI() {
+  const container = document.getElementById("park4night-amenity-filters");
+  const required = new Set(getPark4nightRequiredAmenities());
+
+  ADMIN_AMENITY_OPTIONS.forEach(({ key, label }) => {
+    const row = document.createElement("label");
+    row.className = "admin-checkbox-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = required.has(key);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) required.add(key);
+      else required.delete(key);
+      setPark4nightRequiredAmenities([...required]);
+    });
+
+    row.append(checkbox, document.createTextNode(label));
+    container.appendChild(row);
+  });
+}
+
+// Ein-/Ausklappen der Admin-Karten (Allgemein/Urlaube/Kategorien/park4night)
+// -- Zustand pro Karte in localStorage, Default aufgeklappt. Rein visuelles
+// CSS-Klassen-Toggle, die dynamischen Listen (Touren/Kategorien) rendern
+// unverändert in ihre Container, auch wenn die Karte gerade eingeklappt ist.
+function initCollapsibleSettings() {
+  document.querySelectorAll(".settings-view[data-collapsible-id]").forEach((card) => {
+    const key = `campingAppAdminCollapsed_${card.dataset.collapsibleId}`;
+    card.classList.toggle("is-collapsed", localStorage.getItem(key) === "1");
+    card.querySelector(".settings-view-toggle").addEventListener("click", () => {
+      const collapsed = !card.classList.contains("is-collapsed");
+      card.classList.toggle("is-collapsed", collapsed);
+      localStorage.setItem(key, collapsed ? "1" : "0");
+    });
+  });
 }
 
 function setStatus(text) {
@@ -160,6 +206,8 @@ function initSettingsUI() {
   const categoriesContainer = document.getElementById("settings-categories-container");
   subscribe(() => renderCategoriesSettings(categoriesContainer));
   renderCategoriesSettings(categoriesContainer);
+
+  initPark4nightAdminUI();
 }
 
 function init() {
@@ -170,6 +218,7 @@ function init() {
   initChangelogBanner();
   initVersionFooter();
   initSettingsUI();
+  initCollapsibleSettings();
   initTripBar(setStatus);
   initPlan(setStatus);
   initRoute();

@@ -142,6 +142,39 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 12 – Admin-Umbenennung, park4night-Filter, einklappbare Abschnitte
+
+- **„Einstellungen" → „Admin"**: Bottom-Nav-Label und der Inspire-Hinweistext
+  umbenannt, interne IDs/Funktionsnamen unverändert (`settings-view` etc.).
+  Die erste Karte heißt jetzt „Allgemein" (sonst stünde „Admin" doppelt).
+- **park4night in Plan: nur Campingplätze.** Das `code`-Feld pro Ort
+  identifiziert den Typ – `code === "C"` sind zuverlässig echte
+  Campingplätze (live gegen eine campingplatzreiche Region getestet: alle
+  "C"-Treffer heißen buchstäblich "Camping …", mit Sternebewertung/Preis
+  pro Nacht). `searchPark4nightNear(lat, lng, { campingOnly: true })` filtert
+  darauf – nur in Plans Kartensuche (`js/plan.js`), Inspires "Stellplätze
+  in der Nähe" bleibt bewusst ungefiltert (dort passen auch andere
+  Ortstypen).
+- **park4night-Ausstattungsfilter im Admin-Bereich.** Die park4night-API
+  unterstützt keine Server-seitige Filterung (mehrere Query-Parameter-
+  Varianten getestet: `douche=1`, `code=C`, `filtre_douche=1`,
+  `services=douche`, `type=camping` – alle wirkungslos, die API liefert
+  immer dieselben Treffer). Die Filterung läuft deshalb client-seitig in
+  `searchPark4nightNear()` auf den ohnehin in der Antwort enthaltenen
+  Ausstattungs-Flags. Sechs alltagsrelevante Merkmale (WC, Dusche, Strom,
+  Frischwasser, WLAN, Haustiere erlaubt) als Checkboxen im neuen
+  „park4night-Einstellungen"-Admin-Bereich (`js/park4night.js`
+  `ADMIN_AMENITY_OPTIONS`, Speicherung in `js/settings.js`
+  `getPark4nightRequiredAmenities()`/`setPark4nightRequiredAmenities()`),
+  wirkt auf Plan **und** Inspire. Speichert sofort bei jedem Toggle, kein
+  separater Speichern-Button (wie die Farbschema-/Header-Selects).
+- **Admin-Abschnitte einklappbar.** Alle vier Karten (Allgemein/Urlaube/
+  Kategorien/park4night) haben jetzt einen klickbaren Titel mit Chevron;
+  Zustand pro Karte in `localStorage`, Default aufgeklappt. Rein visuelles
+  CSS-Klassen-Toggle (`.settings-view.is-collapsed`) – die dynamischen
+  Listen (Touren/Kategorien) rendern unverändert weiter, auch wenn ihre
+  Karte gerade eingeklappt ist.
+
 ## Stand: Milestone 10 – Cache-Reset, Zoom-Sperre, echte Header-Fotos, sortierbare Touren/Kategorien
 
 - **Cache-Löschen-Button** in den Einstellungen: meldet den Service Worker
