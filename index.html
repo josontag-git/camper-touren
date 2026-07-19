@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Camper Touren</title>
+  <title>Let’s Camp</title>
   <meta name="description" content="Private Camper-Urlaubsplanung: Orte, Tage, Routen." />
 
   <!-- PWA -->
@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Camper Touren" />
+  <meta name="apple-mobile-web-app-title" content="Let’s Camp" />
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -21,7 +21,7 @@
   <div id="app">
     <div class="app-sticky">
       <header class="app-header">
-        <h1 id="header-trip-name">Camper Touren</h1>
+        <h1 id="header-trip-name">Let’s Camp</h1>
         <div class="header-trip-actions">
           <button id="edit-trip-btn" class="trip-icon-btn" aria-label="Urlaub bearbeiten">✎</button>
           <div class="trip-switcher">
@@ -166,6 +166,11 @@
             <svg class="settings-view-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="settings-view-body">
+            <p class="muted">
+              Ortstyp für die Kartensuche in Plan. Keine Auswahl = alle Typen.
+            </p>
+            <div id="park4night-type-filters"></div>
+
             <p class="muted">
               Nur Orte mit den ausgewählten Ausstattungsmerkmalen werden
               angezeigt (gilt für Plan und Inspire). Keine Auswahl = alle

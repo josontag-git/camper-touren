@@ -1,6 +1,6 @@
 {
-  "name": "Camper Touren",
-  "short_name": "Camper Touren",
+  "name": "Let’s Camp",
+  "short_name": "Let’s Camp",
   "description": "Private Camper-Urlaubsplanung: Orte, Tage, Routen.",
   "start_url": "./index.html",
   "scope": "./",

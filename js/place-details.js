@@ -61,6 +61,14 @@ async function renderPark4nightDetail(place, panel, loading) {
     panel.insertBefore(img, loading);
   }
 
+  const link = document.createElement("a");
+  link.className = "btn btn-ghost-dark";
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.href = `https://park4night.com/en/place/${place.placeId.slice(4)}`;
+  link.textContent = "Auf park4night ansehen ↗";
+  panel.insertBefore(link, loading);
+
   if (place.address) {
     const addr = document.createElement("p");
     addr.className = "muted";

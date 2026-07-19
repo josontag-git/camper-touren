@@ -1,4 +1,4 @@
-// Camper Touren – App-Einstieg. Orchestriert Trip-Auswahl (trips.js) und die
+// Let’s Camp – App-Einstieg. Orchestriert Trip-Auswahl (trips.js) und die
 // drei Bereiche Inspire (inspire.js) / Plan (plan.js) / Route (route.js) für
 // den jeweils gewählten Urlaub, plus Einstellungen (Apps-Script-URL, Farbschema).
 
@@ -7,6 +7,7 @@ import { getTrips, getPlaces, wasLastLoadOffline } from "./api.js";
 import {
   getScriptUrl, setScriptUrl, getGeminiKey, setGeminiKey,
   getPark4nightRequiredAmenities, setPark4nightRequiredAmenities,
+  getPark4nightPlaceTypes, setPark4nightPlaceTypes,
 } from "./settings.js";
 import { getColorTheme, setColorTheme, applyColorTheme, THEMES } from "./theme.js";
 import { getHeaderTheme, setHeaderTheme, applyHeaderTheme, HEADER_THEMES } from "./header-theme.js";
@@ -17,7 +18,7 @@ import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
 import { renderCategoriesSettings, loadCategories } from "./categories.js";
-import { ADMIN_AMENITY_OPTIONS } from "./park4night.js";
+import { ADMIN_AMENITY_OPTIONS, ADMIN_PLACE_TYPE_OPTIONS } from "./park4night.js";
 import { friendlyError } from "./errors.js";
 import { LATEST_CHANGE, isChangelogDismissed, dismissChangelog } from "./changelog.js";
 
@@ -89,7 +90,27 @@ async function clearAppCache() {
 // sofort, kein separater Speichern-Button (gleiches Verhalten wie die
 // Farbschema-/Header-Selects daneben).
 function initPark4nightAdminUI() {
-  const container = document.getElementById("park4night-amenity-filters");
+  const typeContainer = document.getElementById("park4night-type-filters");
+  const types = new Set(getPark4nightPlaceTypes());
+
+  ADMIN_PLACE_TYPE_OPTIONS.forEach(({ code, label }) => {
+    const row = document.createElement("label");
+    row.className = "admin-checkbox-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = types.has(code);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) types.add(code);
+      else types.delete(code);
+      setPark4nightPlaceTypes([...types]);
+    });
+
+    row.append(checkbox, document.createTextNode(label));
+    typeContainer.appendChild(row);
+  });
+
+  const amenityContainer = document.getElementById("park4night-amenity-filters");
   const required = new Set(getPark4nightRequiredAmenities());
 
   ADMIN_AMENITY_OPTIONS.forEach(({ key, label }) => {
@@ -106,7 +127,7 @@ function initPark4nightAdminUI() {
     });
 
     row.append(checkbox, document.createTextNode(label));
-    container.appendChild(row);
+    amenityContainer.appendChild(row);
   });
 }
 
@@ -221,7 +242,7 @@ function init() {
   initCollapsibleSettings();
   initTripBar(setStatus);
   initPlan(setStatus);
-  initRoute();
+  initRoute(setStatus);
   initInspire(setStatus);
   registerServiceWorker();
   initPullToRefresh(refreshAll);

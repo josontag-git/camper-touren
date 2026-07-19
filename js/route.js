@@ -2,14 +2,18 @@
 // Kategorie eingefärbt) + Absprung nach Google Maps (einzelner Ort oder
 // gesamte Route als Wegpunkte). Liste steht unter der Karte.
 
-import { getState, subscribe } from "./state.js";
+import { getState, subscribe, setPlaces } from "./state.js";
 import { categoryInfo } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
 import { photoUrl, starRating } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
+import { deletePlace } from "./api.js";
+import { friendlyError } from "./errors.js";
 
+let onStatus = () => {};
 let map = null;
 let markers = [];
+let infoWindow = null;
 
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
@@ -51,6 +55,62 @@ function markerIcon(maps, color) {
   };
 }
 
+async function onRemoveFromRoute(place) {
+  if (!window.confirm(`"${place.name || "Ort"}" wirklich von der Route entfernen?`)) return;
+  try {
+    await deletePlace(place.id);
+    setPlaces(getState().places.filter((p) => p.id !== place.id));
+  } catch (err) {
+    onStatus(`Fehler beim Entfernen: ${friendlyError(err)}`);
+    console.error(err);
+  }
+}
+
+// Inhalt des InfoWindow beim Klick auf einen Routen-Marker -- Foto/Name/
+// Sterne plus "Details" (dasselbe App-weite Modal wie überall sonst) und
+// "Von Route entfernen" (löscht den Ort, gleicher Pfad wie Plans eigener
+// Löschen-Button). Gleiche CSS-Klassen wie plan.js buildMapInfoContent().
+function buildRouteInfoContent(place) {
+  const wrap = document.createElement("div");
+  wrap.className = "map-info-window";
+
+  if (place.photoRef) {
+    const img = document.createElement("img");
+    img.className = "map-info-photo";
+    img.src = photoUrl(place.photoRef, 240);
+    img.alt = "";
+    wrap.appendChild(img);
+  }
+
+  const title = document.createElement("div");
+  title.className = "map-info-title";
+  title.textContent = place.name || "(ohne Namen)";
+  wrap.appendChild(title);
+
+  if (place.rating) {
+    const rating = document.createElement("div");
+    rating.className = "map-info-rating";
+    rating.textContent = `${starRating(place.rating)} ${place.rating}`;
+    wrap.appendChild(rating);
+  }
+
+  const detailsBtn = document.createElement("button");
+  detailsBtn.type = "button";
+  detailsBtn.className = "btn btn-subtle map-info-btn";
+  detailsBtn.textContent = "Details";
+  detailsBtn.addEventListener("click", () => openPlaceDetailModal(place));
+  wrap.appendChild(detailsBtn);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn btn-ghost-dark map-info-btn";
+  removeBtn.textContent = "✕ Von Route entfernen";
+  removeBtn.addEventListener("click", () => onRemoveFromRoute(place));
+  wrap.appendChild(removeBtn);
+
+  return wrap;
+}
+
 async function renderMap(places) {
   const mapEl = document.getElementById("route-map");
   const withCoords = places.filter(hasCoords);
@@ -66,14 +126,22 @@ async function renderMap(places) {
     if (!map) {
       map = new maps.Map(mapEl, { zoom: 6, center: { lat: Number(withCoords[0].lat), lng: Number(withCoords[0].lng) } });
     }
+    if (!infoWindow) infoWindow = new maps.InfoWindow();
     markers.forEach((m) => m.setMap(null));
-    markers = withCoords.map((p, i) => new maps.Marker({
-      position: { lat: Number(p.lat), lng: Number(p.lng) },
-      map,
-      label: { text: String(i + 1), color: "#fff", fontSize: "11px", fontWeight: "600" },
-      icon: markerIcon(maps, categoryInfo(p.category).color),
-      title: p.name,
-    }));
+    markers = withCoords.map((p, i) => {
+      const marker = new maps.Marker({
+        position: { lat: Number(p.lat), lng: Number(p.lng) },
+        map,
+        label: { text: String(i + 1), color: "#fff", fontSize: "11px", fontWeight: "600" },
+        icon: markerIcon(maps, categoryInfo(p.category).color),
+        title: p.name,
+      });
+      marker.addListener("click", () => {
+        infoWindow.setContent(buildRouteInfoContent(p));
+        infoWindow.open({ map, anchor: marker });
+      });
+      return marker;
+    });
     const bounds = new maps.LatLngBounds();
     withCoords.forEach((p) => bounds.extend({ lat: Number(p.lat), lng: Number(p.lng) }));
     map.fitBounds(bounds);
@@ -213,7 +281,8 @@ function render() {
   fullRouteBtn.onclick = () => routeUrl && window.open(routeUrl, "_blank", "noopener");
 }
 
-export function initRoute() {
+export function initRoute(statusCallback) {
+  onStatus = statusCallback || (() => {});
   subscribe(render);
   render();
 }

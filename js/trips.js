@@ -43,7 +43,7 @@ function renderPicker() {
 
   picker.value = currentTripId || (trips[0]?.id ?? NEW_TRIP_VALUE);
 
-  document.getElementById("header-trip-name").textContent = currentTrip?.name || "Camper Touren";
+  document.getElementById("header-trip-name").textContent = currentTrip?.name || "Let’s Camp";
   document.getElementById("edit-trip-btn").disabled = !currentTripId;
 }
 

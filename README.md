@@ -1,4 +1,4 @@
-# Camper Touren – PWA
+# Let’s Camp – PWA
 
 Private Camper-Urlaubsplanung (Orte, Tage, Routen, Google Sheets als Datenbank).
 
@@ -141,6 +141,33 @@ verlässliche Hauptquelle.
   Modal wie bei Inspire (`openPlaceDetailModal`) statt einer eigenen
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
+
+## Stand: Milestone 13 – App-Name „Let’s Camp", park4night-Link, Route-Karte interaktiv, Ortstyp-Filter
+
+- **App umbenannt zu „Let's Camp"** (Titel, Manifest, Header-Fallback,
+  Apple-Touch-Titel) und neues App-Icon (`icons/camper_app_icon.png`,
+  gleicher PIL-Zuschnitt-Workflow wie beim letzten Icon-Wechsel).
+- **park4night-Link in der Detailansicht ergänzt:** gespeicherte
+  park4night-Orte hatten bisher keine Möglichkeit, zurück zur
+  park4night-Seite zu gelangen (anders als Google-Orte mit „Auf Google Maps
+  ansehen ↗"). `renderPark4nightDetail()` in `js/place-details.js` zeigt
+  jetzt „Auf park4night ansehen ↗" direkt unter dem Foto.
+- **Route-Karte interaktiv:** Marker-Klick öffnet ein InfoWindow (Foto/Name/
+  Sterne) mit „Details" (dasselbe App-weite Modal wie überall) und
+  „✕ Von Route entfernen" (löscht den Ort, gleicher Pfad wie Plans eigener
+  Löschen-Button) – bisher waren die Routen-Marker nicht klickbar.
+  `js/route.js` `buildRouteInfoContent()`, gleiche `.map-info-*`-CSS-Klassen
+  wie Plans Kartensuche.
+- **park4night-Ortstyp-Filter für Plan, Admin-konfigurierbar.** Bisher war
+  „nur Campingplätze" (`code === "C"`) fest einprogrammiert. Jetzt Default
+  Campingplatz **und** Auf dem Bauernhof/Winzer (`code === "F"`, per
+  Live-Test als „réseau bienvenue à la ferme" identifiziert – France-
+  Passion-artige Bauernhof-/Winzer-Gastfreundschaft), als zwei weitere
+  Checkboxen im „park4night-Einstellungen"-Admin-Bereich neben den
+  bestehenden Ausstattungsfiltern (`js/settings.js`
+  `getPark4nightPlaceTypes()`/`setPark4nightPlaceTypes()`,
+  `js/park4night.js` `ADMIN_PLACE_TYPE_OPTIONS`,
+  `searchPark4nightNear(lat, lng, { filterByType: true })`).
 
 ## Stand: Milestone 12 – Admin-Umbenennung, park4night-Filter, einklappbare Abschnitte
 
@@ -460,8 +487,8 @@ Quelle Branch `main` / Root-Verzeichnis einstellen.
 
 ## Icons
 
-`icons/camper_app_icon.png` ist die Quelldatei (VW-Bus-Familienmotiv am
-Küstenberg, 2048×2048). Beim Import mit PIL randlos auf den eigentlichen
+`icons/camper_app_icon.png` ist die Quelldatei (Familie im VW-Bus an der
+Küste, 2048×2048). Beim Import mit PIL randlos auf den eigentlichen
 Bildinhalt zugeschnitten (Quelldateien kommen mit weißem Rand um die
 abgerundete Karte). Daraus generiert: `icon-192.png`, `icon-512.png`
 (normale App-Icons), `icon-maskable-192.png`/`icon-maskable-512.png` (mit

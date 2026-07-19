@@ -853,7 +853,7 @@ function renderGoogleSearchRow(container) {
 // den aktuellen Standort verwenden.
 async function runPark4nightSearch(lat, lng) {
   onStatus("");
-  const results = await searchPark4nightNear(lat, lng, { campingOnly: true });
+  const results = await searchPark4nightNear(lat, lng, { filterByType: true });
   searchResults = results.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
   expandedResultIndex = null;
   selectedCategoryByResult = {};
