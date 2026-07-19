@@ -76,7 +76,16 @@ verlässliche Hauptquelle.
   (Rezensionen zu einem Ort) – Server-zu-Server-Aufruf via `UrlFetchApp`,
   da park4night keine CORS-Header für Browser-Zugriff setzt. **Erfordert
   ein Code.gs-Redeploy**, sonst bleibt diese Quelle einfach leer (kein
-  Absturz, siehe oben).
+  Absturz, siehe oben). `UrlFetchApp` ist der erste externe HTTP-Aufruf in
+  diesem Projekt (bisher nur `SpreadsheetApp`) und braucht deshalb einmalig
+  die zusätzliche Berechtigung „Externe Anfragen senden"
+  (`script.external_request`) – dafür reicht ein einfaches Redeploy
+  **nicht immer**: falls `UrlFetchApp`-Aufrufe mit „Sie haben nicht die
+  erforderliche Berechtigung" fehlschlagen, hilft eine komplett **neue**
+  Bereitstellung (Deploy → New deployment, nicht nur „New version" einer
+  bestehenden) – dabei einmal den Autorisierungsdialog bis „Zulassen"
+  durchklicken. Das erzeugt eine neue `/exec`-URL, die dann als
+  `DEFAULT_SCRIPT_URL` in `js/settings.js` einzutragen ist.
 - **Neues `js/park4night.js`**: normalisiert park4night-Orte auf exakt die
   Objekt-Form, die `searchGooglePlaces()` (`js/places-search.js`) liefert
   (`displayName`, `formattedAddress`, `location`, `rating`, `photos[].name`

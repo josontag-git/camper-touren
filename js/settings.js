@@ -8,7 +8,7 @@ const STORAGE_GEMINI_KEY = "campingAppGeminiKey";
 // (z. B. bei einem Sheet-Wechsel) – die Änderung überschreibt diesen Default
 // nur lokal im Browser, nicht im Code.
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyTOJFg1AGtU17qQ-jgCuSvc-JKHmStCl8HiEI17FAxT7xIv73VgLo0JIjhqF0GeJZ2ZQ/exec";
+  "https://script.google.com/macros/s/AKfycbz3CJhgP58AuFibSDL9_7Q_O5q7euqWNQTZwI6ARJ94kwGv6H7dG0HS2cSJMloWLyia6g/exec";
 
 export function getScriptUrl() {
   return localStorage.getItem(STORAGE_SCRIPT_URL) || DEFAULT_SCRIPT_URL;
