@@ -132,6 +132,15 @@ verlässliche Hauptquelle.
   Vorschlagskarten). `saveSearchResult()` hat dafür einen optionalen
   `status`-Parameter bekommen; für park4night-Treffer greift dieselbe
   „Camping"-Kategorie-Vorbelegung wie beim regulären Speichern.
+- **Kartensuche (Marker-InfoWindow) mit denselben drei Aktionen:** das
+  InfoWindow, das beim Klick auf einen Suchergebnis-Marker aufgeht (Google
+  wie park4night), hatte bisher nur „Zu Plan hinzufügen". Jetzt zusätzlich
+  „Details" und „✓ Könnte interessant sein", identisch zur Listen-Ansicht
+  (`buildMapInfoContent()` nutzt dieselben `saveSearchResult()`/
+  `detailModalSeed()`-Helfer). „Details" öffnet bewusst dasselbe App-weite
+  Modal wie bei Inspire (`openPlaceDetailModal`) statt einer eigenen
+  Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
+  Overlay über die ganze App, genau wie überall sonst positioniert.
 
 ## Stand: Milestone 10 – Cache-Reset, Zoom-Sperre, echte Header-Fotos, sortierbare Touren/Kategorien
 

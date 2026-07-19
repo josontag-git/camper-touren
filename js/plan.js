@@ -677,9 +677,14 @@ function renderSearchResults(container) {
   container.appendChild(resultsEl);
 }
 
-// Inhalt des InfoWindow, das beim Klick auf einen Marker aufgeht – Foto/Name/
-// Sterne plus ein Button, der den Ort direkt von der Karte aus speichert
-// (gleicher Pfad wie der Listen-Flow, nur ohne Kategorie/Termine).
+// Inhalt des InfoWindow, das beim Klick auf einen Marker aufgeht (Google-
+// oder park4night-Ergebnis, siehe renderResultsMap) – Foto/Name/Sterne plus
+// dieselben drei Aktionen wie bei der Listen-Ansicht der Suchergebnisse:
+// direkt speichern, vormerken, oder Details ansehen. "Details" öffnet dabei
+// bewusst dasselbe App-weite Modal wie bei Inspire (openPlaceDetailModal,
+// siehe js/place-details.js) statt einer eigenen Mini-Ansicht im schmalen
+// InfoWindow – es legt sich als vollflächiges Overlay über die ganze App,
+// genau wie überall sonst.
 function buildMapInfoContent(place, index) {
   const wrap = document.createElement("div");
   wrap.className = "map-info-window";
@@ -711,6 +716,22 @@ function buildMapInfoContent(place, index) {
   addBtn.textContent = "✓ Zu Plan hinzufügen";
   addBtn.addEventListener("click", () => saveSearchResult(place, index, { arrivalDate: "", departureDate: "" }, addBtn));
   wrap.appendChild(addBtn);
+
+  const detailsBtn = document.createElement("button");
+  detailsBtn.type = "button";
+  detailsBtn.className = "btn btn-subtle map-info-btn";
+  detailsBtn.textContent = "Details";
+  detailsBtn.addEventListener("click", () => openPlaceDetailModal(detailModalSeed(place)));
+  wrap.appendChild(detailsBtn);
+
+  const interestBtn = document.createElement("button");
+  interestBtn.type = "button";
+  interestBtn.className = "btn btn-subtle map-info-btn";
+  interestBtn.textContent = "✓ Könnte interessant sein";
+  interestBtn.addEventListener("click", () => saveSearchResult(
+    place, index, { arrivalDate: "", departureDate: "" }, interestBtn, "interested", "✓ Könnte interessant sein"
+  ));
+  wrap.appendChild(interestBtn);
 
   return wrap;
 }
