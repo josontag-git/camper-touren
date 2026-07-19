@@ -931,6 +931,14 @@ html, body {
   right: 14px;
 }
 
+.place-detail-photo {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  display: block;
+}
+
 .place-reviews-list {
   list-style: none;
   margin: 0;

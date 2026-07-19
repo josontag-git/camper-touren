@@ -56,6 +56,49 @@ Nach einer UX-Durchsicht behoben:
   Detailkarte). Die bisherige Ergebnisliste mit Kategorie-/Datumsauswahl
   bleibt unverändert bestehen, die Karte ist ein zusätzlicher, schnellerer Weg.
 
+## Stand: Milestone 11 – park4night als zweite Ortsquelle
+
+Zusätzlich zur Google-Places-Suche steht in Plan (Ort hinzufügen) und
+Inspire jetzt auch [park4night](https://park4night.com) als Quelle für
+Stellplatz-Community-Daten zur Verfügung.
+
+**Wichtig: inoffizielle API.** Es gibt keine offizielle park4night-API. Die
+genutzten Endpunkte (`lieuxGetFilter.php`, `commGet.php`) sind unverändert
+undokumentiert und die Antwort enthält sogar wörtlich den Hinweis „This
+data is not public, STOP your parsing" – die Schnittstelle kann sich
+jederzeit ohne Vorwarnung ändern oder gesperrt werden. Deshalb ist jeder
+Fehler beim Aufruf **bewusst stillschweigend**: park4night blendet sich bei
+einem Ausfall einfach aus (kein Fehler-Banner), Google Places bleibt die
+verlässliche Hauptquelle.
+
+- **`apps-script/Code.gs`**: neue `doGet`-Actions `park4nightSearch`
+  (Koordinaten → Stellplätze in der Nähe) und `park4nightReviews`
+  (Rezensionen zu einem Ort) – Server-zu-Server-Aufruf via `UrlFetchApp`,
+  da park4night keine CORS-Header für Browser-Zugriff setzt. **Erfordert
+  ein Code.gs-Redeploy**, sonst bleibt diese Quelle einfach leer (kein
+  Absturz, siehe oben).
+- **Neues `js/park4night.js`**: normalisiert park4night-Orte auf exakt die
+  Objekt-Form, die `searchGooglePlaces()` (`js/places-search.js`) liefert
+  (`displayName`, `formattedAddress`, `location`, `rating`, `photos[].name`
+  usw.) – dadurch verwenden `js/plan.js` und `js/inspire.js` für beide
+  Quellen dieselben Render-/Speicherfunktionen, nur punktuelle
+  `place.source === "park4night"`-Zweige für die Extras (Ausstattungs-Notiz,
+  park4night-Link statt Google-Maps-Link, Default-Kategorie „Camping").
+  Gespeicherte Orte bekommen eine `"p4n:"`-präfigierte `placeId`, damit
+  `js/place-details.js` beim erneuten Öffnen weiß, welche Detailansicht
+  (Google-Refetch vs. park4night-Reviews) zu laden ist – ganz ohne
+  Sheet-Schema-Änderung.
+- **Plan**: neuer Tab „Google" / „park4night" beim Ort-Hinzufügen.
+  park4night sucht nur nach Koordinaten (kein Freitext wie Google) – dafür
+  entweder einen Ortsnamen eingeben (wird per Google-Textsuche grob
+  geokodet) oder den aktuellen Standort verwenden.
+- **Inspire**: sobald ein Gemini-Ortsvorschlag über Google aufgelöst wurde,
+  wird zusätzlich in dessen Nähe nach park4night-Stellplätzen gesucht (Top 3
+  nach Bewertung) und unter „Stellplätze in der Nähe (park4night)" mit
+  denselben Aktionen wie normale Vorschläge angezeigt (keine
+  Gemini-Prompt-Änderung nötig – die Koordinate kommt vom bereits
+  aufgelösten Google-Ort).
+
 ## Stand: Milestone 10 – Cache-Reset, Zoom-Sperre, echte Header-Fotos, sortierbare Touren/Kategorien
 
 - **Cache-Löschen-Button** in den Einstellungen: meldet den Service Worker
@@ -364,11 +407,15 @@ fehlende Kopfzeilen-Spalten werden beim nächsten Zugriff automatisch ergänzt
 Places-Suche befüllt (Plan-Suche oder Inspire-Vorschau) – manuell angelegte
 Orte bleiben dort leer, Listen zeigen dann wie bisher nur Text ohne
 Vorschaubild/Sterne. `status` ist `""` (fest eingeplant) oder `"interested"`
-("Könnte interessant sein", siehe Wunschliste in Plan). **Nach dem Update
-von `Code.gs`** muss im Sheet wie gewohnt eine neue Version der
+("Könnte interessant sein", siehe Wunschliste in Plan). `placeId` trägt bei
+park4night-Orten das Präfix `"p4n:"` (z. B. `"p4n:582030"`), sonst eine
+rohe Google-Place-ID – daran erkennt `js/place-details.js`, welche
+Detailansicht zu laden ist (kein eigenes Sheet-Feld nötig). **Nach dem
+Update von `Code.gs`** muss im Sheet wie gewohnt eine neue Version der
 Apps-Script-Bereitstellung erstellt werden (siehe oben, "App mit dem Sheet
 verbinden") – bis dahin bleiben Kategorien lokal (siehe
-Kategorienverwaltung), Trips/Places funktionieren unverändert weiter.
+Kategorienverwaltung) bzw. park4night einfach leer, Trips/Places
+funktionieren unverändert weiter.
 
 ## Mögliche nächste Schritte
 

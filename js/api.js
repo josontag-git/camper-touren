@@ -101,3 +101,21 @@ export function updateCategory(category) {
 export function deleteCategory(id) {
   return postAction("category", "delete", { id });
 }
+
+// park4night-Proxy (siehe apps-script/Code.gs) -- normale GET-Anfrage (nicht
+// postAction/no-cors), da die Antwort hier tatsächlich gelesen werden muss.
+export async function searchPark4night(lat, lng) {
+  const url = `${getScriptUrl()}?action=park4nightSearch&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`park4night-Proxy-Fehler ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data.results) ? data.results : [];
+}
+
+export async function getPark4nightReviews(lieuId) {
+  const url = `${getScriptUrl()}?action=park4nightReviews&lieuId=${encodeURIComponent(lieuId)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`park4night-Proxy-Fehler ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data.reviews) ? data.reviews : [];
+}

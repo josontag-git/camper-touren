@@ -2,7 +2,9 @@
 // Urlaub – echtes Hin und Her, Gemini kann auch Rückfragen stellen statt nur
 // eine starre Liste auszuspucken. Rückfragen kommen zusätzlich als klickbare
 // Antwort-Chips, konkrete Ortsvorschläge als Vorschau-Karten (Bild/Sterne aus
-// der Google-Places-Suche) mit direkter Übernahme nach "Plan".
+// der Google-Places-Suche) mit direkter Übernahme nach "Plan". Zusätzlich:
+// park4night-Stellplätze in der Nähe des ersten Vorschlags einer Antwort,
+// siehe maybeLoadPark4nightForTurn().
 
 import { getGeminiKey } from "./settings.js";
 import { getState, setPlaces } from "./state.js";
@@ -10,6 +12,8 @@ import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
 import { friendlyError } from "./errors.js";
+import { getCategories } from "./categories.js";
+import { searchPark4nightNear } from "./park4night.js";
 
 const MODEL = "gemini-3.5-flash";
 const EXAMPLE_HINT = "Frag nach Ideen für Orte, Routen oder Aktivitäten – z. B. \"Was können wir an einem Regentag an der Nordsee machen?\"";
@@ -21,6 +25,7 @@ let conversation = []; // [{ role: "user"|"model", text, quickReplies?, placeSug
 let resolvedSuggestions = {}; // key (name+query) -> { status: "loading"|"done"|"error", place? }
 let addedSuggestions = new Map(); // key -> { placeId, status } des angelegten Plan-Eintrags
 let typing = false; // Tipp-Indikator während auf Gemini gewartet wird
+let park4nightByTurn = {}; // Turn-Index -> { status: "loading"|"done", places? } -- siehe maybeLoadPark4nightForTurn()
 
 function suggestionKey(s) {
   return `${s.name}|${s.query || ""}`;
@@ -126,21 +131,22 @@ async function saveSuggestion(suggestion, place, status, btn) {
   const existing = addedSuggestions.get(key);
   btn.disabled = true;
   btn.textContent = "Speichert …";
+  const isPark4night = place.source === "park4night";
   const record = {
     id: existing?.placeId || crypto.randomUUID(),
     tripId: currentTripId,
     order: places.length,
     name: place.displayName?.text || suggestion.name,
-    category: "",
+    category: isPark4night ? (getCategories().find((c) => /camp/i.test(c.label))?.id || "") : "",
     arrivalDate: "",
     departureDate: "",
     address: place.formattedAddress || "",
     lat: place.location?.latitude ?? "",
     lng: place.location?.longitude ?? "",
-    note: "",
+    note: isPark4night ? (place.note || "") : "",
     placeId: place.id || "",
     createdAt: new Date().toISOString(),
-    photoRef: place.photos?.[0]?.name || "",
+    photoRef: place.photos?.[0]?.thumb || place.photos?.[0]?.name || "",
     rating: place.rating ?? "",
     userRatingCount: place.userRatingCount ?? "",
     status,
@@ -285,6 +291,126 @@ function buildSuggestionCard(suggestion) {
   return card;
 }
 
+// park4night-Stellplätze "in der Nähe" des ERSTEN Ortsvorschlags einer
+// Modell-Antwort -- Koordinate kommt von dessen bereits über
+// resolveSuggestion()/searchGooglePlaces() aufgelöster Position (kein
+// Gemini-Prompt-Umbau nötig, keine geratenen Koordinaten). Läuft höchstens
+// einmal pro Turn (park4nightByTurn-Eintrag als Guard) und rendert bei
+// Erfolg über renderConversation() neu ein.
+function maybeLoadPark4nightForTurn(turnIndex, firstSuggestion) {
+  if (!firstSuggestion || park4nightByTurn[turnIndex] !== undefined) return;
+  const resolved = resolvedSuggestions[suggestionKey(firstSuggestion)];
+  if (!resolved || resolved.status !== "done" || !resolved.place?.location) return;
+
+  park4nightByTurn[turnIndex] = { status: "loading" };
+  const { latitude, longitude } = resolved.place.location;
+  searchPark4nightNear(latitude, longitude).then((results) => {
+    const sorted = results.slice().sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    park4nightByTurn[turnIndex] = { status: "done", places: sorted.slice(0, 3) };
+    renderConversation();
+  });
+}
+
+function buildPark4nightCard(place) {
+  const suggestion = { name: place.displayName?.text || "", query: "" };
+  const key = suggestionKey(suggestion);
+  const card = document.createElement("div");
+  card.className = "inspire-card inspire-suggestion-card";
+
+  const photo = place.photos?.[0];
+  if (photo) {
+    const img = document.createElement("img");
+    img.className = "inspire-card-photo";
+    img.src = photoUrl(photo.name);
+    img.alt = place.displayName?.text || "";
+    card.appendChild(img);
+  }
+
+  const title = document.createElement("div");
+  title.className = "trip-title";
+  title.textContent = place.displayName?.text || "(ohne Namen)";
+  card.appendChild(title);
+
+  if (place.rating) {
+    const ratingEl = document.createElement("div");
+    ratingEl.className = "trip-meta";
+    ratingEl.textContent = `${starRating(place.rating)} ${place.rating} (${place.userRatingCount || 0})`;
+    card.appendChild(ratingEl);
+  }
+
+  if (place.formattedAddress) {
+    const addr = document.createElement("div");
+    addr.className = "trip-meta";
+    addr.textContent = place.formattedAddress;
+    card.appendChild(addr);
+  }
+
+  const existing = addedSuggestions.get(key);
+  const currentStatus = existing?.status;
+
+  const actions = document.createElement("div");
+  actions.className = "inspire-card-actions";
+
+  const addBtn = document.createElement("button");
+  addBtn.className = "btn btn-primary";
+  addBtn.textContent = currentStatus === "" ? "✕ Entfernen" : "✓ Zu Plan hinzufügen";
+  addBtn.addEventListener("click", () => {
+    if (currentStatus === "") removeSuggestion(suggestion, addBtn);
+    else saveSuggestion(suggestion, place, "", addBtn);
+  });
+  actions.appendChild(addBtn);
+
+  const detailsBtn = document.createElement("button");
+  detailsBtn.className = "btn btn-subtle";
+  detailsBtn.textContent = "Details";
+  detailsBtn.addEventListener("click", () => openPlaceDetailModal({
+    name: place.displayName?.text || "",
+    placeId: place.id,
+    photoRef: place.photos?.[0]?.name || "",
+    address: place.formattedAddress || "",
+    note: place.note || "",
+  }));
+  actions.appendChild(detailsBtn);
+
+  card.appendChild(actions);
+
+  if (currentStatus !== "") {
+    const secondaryActions = document.createElement("div");
+    secondaryActions.className = "inspire-card-actions inspire-card-actions-secondary";
+
+    const interestBtn = document.createElement("button");
+    interestBtn.className = "btn btn-subtle";
+    interestBtn.textContent = currentStatus === "interested" ? "✕ Entfernen" : "✓ Könnte interessant sein";
+    interestBtn.addEventListener("click", () => {
+      if (currentStatus === "interested") removeSuggestion(suggestion, interestBtn);
+      else saveSuggestion(suggestion, place, "interested", interestBtn);
+    });
+    secondaryActions.appendChild(interestBtn);
+    card.appendChild(secondaryActions);
+  }
+
+  return card;
+}
+
+// Rendert den park4night-Block unter den "Meine Vorschläge" einer
+// Modell-Antwort, falls für diesen Turn bereits (erfolgreich) geladen --
+// bei Fehler/leerem Ergebnis bleibt der Block einfach weg, kein Fehlertext
+// (park4night ist eine optionale Zusatzquelle, siehe js/park4night.js).
+function renderPark4nightBlock(container, turnIndex) {
+  const entry = park4nightByTurn[turnIndex];
+  if (!entry || entry.status !== "done" || entry.places.length === 0) return;
+
+  const headline = document.createElement("div");
+  headline.className = "inspire-suggestions-headline";
+  headline.textContent = "Stellplätze in der Nähe (park4night):";
+  container.appendChild(headline);
+
+  const cardsWrap = document.createElement("div");
+  cardsWrap.className = "inspire-results";
+  entry.places.forEach((p) => cardsWrap.appendChild(buildPark4nightCard(p)));
+  container.appendChild(cardsWrap);
+}
+
 function renderConversation() {
   const container = document.getElementById("inspire-results");
   const resetBtn = document.getElementById("inspire-reset-btn");
@@ -343,6 +469,9 @@ function renderConversation() {
       cardsWrap.className = "inspire-results";
       turn.placeSuggestions.forEach((s) => cardsWrap.appendChild(buildSuggestionCard(s)));
       container.appendChild(cardsWrap);
+
+      maybeLoadPark4nightForTurn(index, turn.placeSuggestions[0]);
+      renderPark4nightBlock(container, index);
     }
   });
 
@@ -398,6 +527,7 @@ function resetConversation() {
   conversation = [];
   resolvedSuggestions = {};
   addedSuggestions = new Map();
+  park4nightByTurn = {};
   typing = false;
   document.getElementById("inspire-query").placeholder = EXAMPLE_PLACEHOLDER;
   onStatus("");

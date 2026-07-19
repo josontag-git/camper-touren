@@ -1,5 +1,6 @@
-// Plan-Ansicht: Orte des aktuellen Urlaubs suchen (volle Google-Maps-Suche:
-// Umkreis, Fotos, Bewertungen, Kartenansicht der Treffer)/manuell anlegen/
+// Plan-Ansicht: Orte des aktuellen Urlaubs suchen (Google-Places-Suche
+// [Umkreis, Fotos, Bewertungen, Kartenansicht] oder park4night-Stellplatz-
+// Community-Daten [nach Koordinaten], umschaltbar per Tab)/manuell anlegen/
 // bearbeiten/löschen/sortieren. Drei Ansichten wählbar: nach Kategorie
 // geclustert (mit Filter-Chips und Drag&Drop), nach Datum gruppiert, oder
 // nach aktueller Entfernung sortiert.
@@ -8,10 +9,11 @@ import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
 import { getCategories, UNCATEGORIZED, categoryInfo, allCategoryIds, renderCategoryFilterChips, renderCategoryButtons } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
-import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
+import { photoUrl, starRating, searchGooglePlaces, getCurrentPosition } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
 import { friendlyError } from "./errors.js";
 import { attachDragHandle } from "./drag-reorder.js";
+import { searchPark4nightNear } from "./park4night.js";
 
 const RADIUS_OPTIONS = [
   { value: "", label: "Umkreis: egal" },
@@ -28,6 +30,7 @@ let viewMode = "date"; // "category" | "date" | "distance"
 let userPosition = null; // { lat, lng }, für viewMode "distance"
 
 let addMode = null; // null | "search" | "manual"
+let searchSource = "google"; // "google" | "park4night", siehe renderSourceTabs()
 let searchResults = [];
 let expandedResultIndex = null;
 let selectedCategoryByResult = {};
@@ -479,10 +482,10 @@ async function saveSearchResult(place, index, dates, saveBtn) {
     address: place.formattedAddress || "",
     lat: place.location?.latitude ?? "",
     lng: place.location?.longitude ?? "",
-    note: "",
+    note: place.source === "park4night" ? place.note : "",
     placeId: place.id || "",
     createdAt: new Date().toISOString(),
-    photoRef: place.photos?.[0]?.name || "",
+    photoRef: place.photos?.[0]?.thumb || place.photos?.[0]?.name || "",
     rating: place.rating ?? "",
     userRatingCount: place.userRatingCount ?? "",
   };
@@ -517,16 +520,32 @@ function buildResultDetailPanel(place, index) {
     panel.appendChild(gallery);
   }
 
+  if (place.source === "park4night" && place.note) {
+    const amenities = document.createElement("p");
+    amenities.className = "muted";
+    amenities.textContent = `Ausstattung: ${place.note}`;
+    panel.appendChild(amenities);
+  }
+
   if (place.rating || place.googleMapsUri) {
     const link = document.createElement("a");
     link.className = "btn btn-ghost-dark";
     link.target = "_blank";
     link.rel = "noopener";
     link.href = place.googleMapsUri || "#";
+    const sourceLabel = place.source === "park4night" ? "Auf park4night" : "Auf Google Maps";
     link.textContent = place.rating
-      ? `${starRating(place.rating)} ${place.rating} (${place.userRatingCount || 0}) auf Google Maps ↗`
-      : "Auf Google Maps ansehen ↗";
+      ? `${starRating(place.rating)} ${place.rating} (${place.userRatingCount || 0}) ${sourceLabel.toLowerCase()} ↗`
+      : `${sourceLabel} ansehen ↗`;
     panel.appendChild(link);
+  }
+
+  // Bei park4night-Treffern die Kategorie automatisch auf "Camping"
+  // vorbelegen (beim ersten Öffnen des Panels), bleibt über die Buttons
+  // unten änderbar.
+  if (place.source === "park4night" && selectedCategoryByResult[index] === undefined) {
+    const campingCat = getCategories().find((c) => /camp/i.test(c.label));
+    if (campingCat) selectedCategoryByResult[index] = campingCat.id;
   }
 
   const catLabel = document.createElement("div");
@@ -690,7 +709,33 @@ async function renderResultsMap(mapEl) {
   }
 }
 
-function renderSearchUI(container) {
+// Umschalter zwischen den beiden Suchquellen (Google Places / park4night) --
+// gleiche CSS-Klassen wie der Kategorie/Datum/Entfernung-Umschalter oben in
+// dieser Datei. Quellwechsel verwirft die bisherigen Ergebnisse, damit nicht
+// beide Quellen vermischt in der Liste stehen.
+function renderSourceTabs(container) {
+  const tabs = document.createElement("div");
+  tabs.className = "view-mode-switch";
+  [["google", "Google"], ["park4night", "park4night"]].forEach(([id, label]) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "view-mode-btn";
+    btn.classList.toggle("is-active", searchSource === id);
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      if (searchSource === id) return;
+      searchSource = id;
+      searchResults = [];
+      expandedResultIndex = null;
+      selectedCategoryByResult = {};
+      renderAddContainer();
+    });
+    tabs.appendChild(btn);
+  });
+  container.appendChild(tabs);
+}
+
+function renderGoogleSearchRow(container) {
   const searchRow = document.createElement("div");
   searchRow.className = "inspire-search";
 
@@ -712,6 +757,123 @@ function renderSearchUI(container) {
 
   searchRow.append(queryField, radiusSelect, searchBtn);
   container.appendChild(searchRow);
+
+  async function runSearch() {
+    const query = queryField.value.trim();
+    if (!query) return;
+    searchBtn.disabled = true;
+    searchBtn.textContent = "Sucht …";
+    onStatus("");
+    try {
+      searchResults = await searchGooglePlaces(query, radiusSelect.value);
+      expandedResultIndex = null;
+      selectedCategoryByResult = {};
+      if (searchResults.length === 0) onStatus("Keine Ergebnisse gefunden.");
+      renderAddContainer();
+    } catch (err) {
+      searchResults = [];
+      onStatus(friendlyError(err));
+      console.error(err);
+      renderAddContainer();
+    } finally {
+      searchBtn.disabled = false;
+      searchBtn.textContent = "Suchen";
+    }
+  }
+  searchBtn.addEventListener("click", runSearch);
+  queryField.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
+}
+
+// park4night durchsucht nur nach Koordinaten (keine Freitextsuche wie
+// Google) -- entweder einen Ortsnamen grob über die bestehende
+// Google-Textsuche geokoden (erstes Ergebnis mit Koordinaten) oder direkt
+// den aktuellen Standort verwenden.
+async function runPark4nightSearch(lat, lng) {
+  onStatus("");
+  const results = await searchPark4nightNear(lat, lng);
+  searchResults = results.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+  expandedResultIndex = null;
+  selectedCategoryByResult = {};
+  if (searchResults.length === 0) {
+    onStatus("Keine park4night-Treffer gefunden (oder die Quelle ist gerade nicht erreichbar).");
+  }
+  renderAddContainer();
+}
+
+function renderPark4nightSearchRow(container) {
+  const searchRow = document.createElement("div");
+  searchRow.className = "inspire-search";
+
+  const queryField = document.createElement("input");
+  queryField.type = "text";
+  queryField.placeholder = "Ort (optional, z. B. Bretagne)";
+
+  const searchBtn = document.createElement("button");
+  searchBtn.className = "btn btn-primary";
+  searchBtn.textContent = "Suchen";
+  searchBtn.addEventListener("click", async () => {
+    const query = queryField.value.trim();
+    if (!query) return;
+    searchBtn.disabled = true;
+    searchBtn.textContent = "Sucht …";
+    onStatus("");
+    try {
+      const geocoded = await searchGooglePlaces(query);
+      const first = geocoded.find((p) => p.location);
+      if (!first) {
+        onStatus(`„${query}" konnte nicht gefunden werden.`);
+        return;
+      }
+      await runPark4nightSearch(first.location.latitude, first.location.longitude);
+    } catch (err) {
+      onStatus(friendlyError(err));
+      console.error(err);
+    } finally {
+      searchBtn.disabled = false;
+      searchBtn.textContent = "Suchen";
+    }
+  });
+  queryField.addEventListener("keydown", (e) => { if (e.key === "Enter") searchBtn.click(); });
+
+  searchRow.append(queryField, searchBtn);
+  container.appendChild(searchRow);
+
+  const locBtn = document.createElement("button");
+  locBtn.className = "btn btn-ghost-dark";
+  locBtn.textContent = "📍 Meinen Standort verwenden";
+  locBtn.addEventListener("click", async () => {
+    locBtn.disabled = true;
+    const originalLabel = locBtn.textContent;
+    locBtn.textContent = "Ermittle Standort …";
+    onStatus("");
+    try {
+      const pos = await getCurrentPosition();
+      locBtn.textContent = "Sucht …";
+      await runPark4nightSearch(pos.lat, pos.lng);
+    } catch (err) {
+      onStatus(friendlyError(err));
+      console.error(err);
+    } finally {
+      locBtn.disabled = false;
+      locBtn.textContent = originalLabel;
+    }
+  });
+  container.appendChild(locBtn);
+
+  const hint = document.createElement("p");
+  hint.className = "muted";
+  hint.textContent = "Community-Daten von park4night.";
+  container.appendChild(hint);
+}
+
+function renderSearchUI(container) {
+  renderSourceTabs(container);
+
+  if (searchSource === "google") {
+    renderGoogleSearchRow(container);
+  } else {
+    renderPark4nightSearchRow(container);
+  }
 
   const hasMapResults = searchResults.some((p) => p.location);
 
@@ -740,31 +902,6 @@ function renderSearchUI(container) {
       mapBtn.textContent = "Auf Karte anzeigen";
     }
   });
-
-  async function runSearch() {
-    const query = queryField.value.trim();
-    if (!query) return;
-    searchBtn.disabled = true;
-    searchBtn.textContent = "Sucht …";
-    onStatus("");
-    try {
-      searchResults = await searchGooglePlaces(query, radiusSelect.value);
-      expandedResultIndex = null;
-      selectedCategoryByResult = {};
-      if (searchResults.length === 0) onStatus("Keine Ergebnisse gefunden.");
-      renderAddContainer();
-    } catch (err) {
-      searchResults = [];
-      onStatus(friendlyError(err));
-      console.error(err);
-      renderAddContainer();
-    } finally {
-      searchBtn.disabled = false;
-      searchBtn.textContent = "Suchen";
-    }
-  }
-  searchBtn.addEventListener("click", runSearch);
-  queryField.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
 
   if (searchResults.length > 0) renderSearchResults(container);
 

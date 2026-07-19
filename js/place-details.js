@@ -1,11 +1,13 @@
 // Detailansicht (Modal) für einen gespeicherten Ort: weitere Fotos +
 // Rezensionen via Places API (New) "Place Details", aufgerufen per Klick auf
 // einen Ort in Plan/Route (nur wenn `place.placeId` vorhanden ist, also aus
-// einer Places-Suche stammt).
+// einer Places-Suche stammt). Orte aus park4night (placeId-Präfix "p4n:")
+// laufen über einen eigenen, schlankeren Zweig, siehe renderPark4nightDetail().
 
 import { CONFIG } from "./config.js";
 import { photoUrl, starRating } from "./places-search.js";
 import { friendlyError } from "./errors.js";
+import { fetchPark4nightReviewsFor } from "./park4night.js";
 
 async function fetchPlaceDetails(placeId) {
   const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
@@ -22,6 +24,76 @@ async function fetchPlaceDetails(placeId) {
     throw new Error(`Places-API-Fehler ${res.status}: ${body}`);
   }
   return res.json();
+}
+
+function renderPark4nightReview(review) {
+  const li = document.createElement("li");
+  li.className = "place-review";
+
+  const head = document.createElement("div");
+  head.className = "place-review-head";
+  const author = document.createElement("span");
+  author.className = "place-review-author";
+  author.textContent = review.uuid || "Anonym";
+  const rating = document.createElement("span");
+  rating.className = "muted";
+  rating.textContent = `${starRating(Number(review.note) || 0)}${review.date_creation ? ` · ${review.date_creation.slice(0, 10)}` : ""}`;
+  head.append(author, rating);
+
+  const text = document.createElement("p");
+  text.className = "place-review-text";
+  text.textContent = review.commentaire || "";
+
+  li.append(head, text);
+  return li;
+}
+
+// park4night hat keinen "Ort per ID neu abrufen"-Endpunkt (nur
+// Koordinaten-Suche + Reviews) -- anders als bei Google zeigt die
+// Detailansicht deshalb nur das bereits gespeicherte Foto (photoRef) groß
+// statt einer vollen Galerie, dafür aber frisch geladene Rezensionen.
+async function renderPark4nightDetail(place, panel, loading) {
+  if (place.photoRef) {
+    const img = document.createElement("img");
+    img.className = "place-detail-photo";
+    img.src = place.photoRef;
+    img.alt = place.name || "";
+    panel.insertBefore(img, loading);
+  }
+
+  if (place.address) {
+    const addr = document.createElement("p");
+    addr.className = "muted";
+    addr.textContent = place.address;
+    panel.insertBefore(addr, loading);
+  }
+
+  if (place.note) {
+    const amenities = document.createElement("p");
+    amenities.className = "muted";
+    amenities.textContent = `Ausstattung: ${place.note}`;
+    panel.insertBefore(amenities, loading);
+  }
+
+  const hint = document.createElement("p");
+  hint.className = "muted";
+  hint.textContent = "Community-Daten von park4night.";
+  panel.insertBefore(hint, loading);
+
+  const reviews = await fetchPark4nightReviewsFor(place.placeId.slice(4));
+  loading.remove();
+
+  if (reviews.length) {
+    const heading = document.createElement("div");
+    heading.className = "trip-meta";
+    heading.textContent = "Rezensionen";
+    panel.appendChild(heading);
+
+    const list = document.createElement("ul");
+    list.className = "place-reviews-list";
+    reviews.forEach((r) => list.appendChild(renderPark4nightReview(r)));
+    panel.appendChild(list);
+  }
 }
 
 function closeModal() {
@@ -82,6 +154,16 @@ export async function openPlaceDetailModal(place) {
   panel.append(closeBtn, title, loading);
   backdrop.appendChild(panel);
   root.appendChild(backdrop);
+
+  if (place.placeId?.startsWith("p4n:")) {
+    try {
+      await renderPark4nightDetail(place, panel, loading);
+    } catch (err) {
+      loading.textContent = `Fehler beim Laden: ${friendlyError(err)}`;
+      console.error(err);
+    }
+    return;
+  }
 
   try {
     const details = await fetchPlaceDetails(place.placeId);

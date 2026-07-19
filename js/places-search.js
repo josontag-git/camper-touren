@@ -6,6 +6,12 @@
 import { CONFIG } from "./config.js";
 
 export function photoUrl(name, maxWidthPx = 400) {
+  if (!name) return "";
+  // park4night liefert bereits fertige CDN-Foto-URLs (kein Google-
+  // Resource-Pfad) -- die einfach durchreichen statt in die
+  // Google-Places-Media-URL einzubauen. Dadurch funktionieren dieselben
+  // photoUrl(place.photos[0].name)-Aufrufe für beide Quellen.
+  if (/^https?:\/\//.test(name)) return name;
   return `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${maxWidthPx}&key=${CONFIG.GOOGLE_MAPS_API_KEY}`;
 }
 

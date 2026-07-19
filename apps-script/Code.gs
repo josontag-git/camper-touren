@@ -23,11 +23,76 @@ const ENTITIES = {
 };
 
 function doGet(e) {
+  const action = e && e.parameter && e.parameter.action;
+  if (action === "park4nightSearch") {
+    return jsonResponse({ results: fetchPark4nightSearch(e.parameter.lat, e.parameter.lng) });
+  }
+  if (action === "park4nightReviews") {
+    return jsonResponse({ reviews: fetchPark4nightReviews(e.parameter.lieuId) });
+  }
   return jsonResponse({
     trips: readSheet(SHEET_TRIPS, TRIPS_HEADERS),
     places: readSheet(SHEET_PLACES, PLACES_HEADERS),
     categories: readSheet(SHEET_CATEGORIES, CATEGORIES_HEADERS),
   });
+}
+
+// park4night: inoffizielle, undokumentierte Community-API für
+// Stellplatzdaten (Ergänzung zur Google-Places-Suche). Die Antwort enthält
+// wörtlich den Hinweis "This data is not public, STOP your parsing" -- die
+// Schnittstelle kann sich jederzeit ändern oder gesperrt werden. Deshalb
+// hier server-seitig (kein CORS-Problem für den Browser) UND defensiv:
+// jeder Fehler (Netzwerk, Status, kaputtes JSON) liefert einfach ein leeres
+// Ergebnis statt zu werfen, damit die App diese Quelle bei Ausfall still
+// ausblenden kann (siehe js/park4night.js).
+const PARK4NIGHT_SEARCH_FIELDS = [
+  "id", "latitude", "longitude", "description_de", "ville", "code_postal",
+  "pays", "note_moyenne", "nb_commentaires", "prix_stationnement",
+  "prix_services", "nb_places", "hauteur_limite", "code", "distance",
+  "point_eau", "eau_noire", "eau_usee", "wc_public", "poubelle", "douche",
+  "electricite", "wifi", "piscine", "gaz", "gpl", "animaux", "laverie",
+  "boulangerie", "moto", "rando", "escalade", "peche", "baignade",
+  "jeux_enfants", "vtt", "windsurf", "point_de_vue", "donnees_mobile",
+  "lavage", "caravaneige",
+];
+
+function fetchPark4nightSearch(lat, lng) {
+  if (!lat || !lng) return [];
+  try {
+    const url = "https://guest.park4night.com/services/V4.1/lieuxGetFilter.php"
+      + "?latitude=" + encodeURIComponent(lat) + "&longitude=" + encodeURIComponent(lng);
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return [];
+    const data = JSON.parse(res.getContentText());
+    const lieux = Array.isArray(data.lieux) ? data.lieux : [];
+    return lieux.map((l) => {
+      const reduced = {};
+      PARK4NIGHT_SEARCH_FIELDS.forEach((key) => { reduced[key] = l[key]; });
+      reduced.name = l.name || l.titre || "";
+      reduced.photos = Array.isArray(l.photos)
+        ? l.photos.map((p) => ({ link_large: p.link_large, link_thumb: p.link_thumb }))
+        : [];
+      return reduced;
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+function fetchPark4nightReviews(lieuId) {
+  if (!lieuId) return [];
+  try {
+    const url = "https://guest.park4night.com/services/V4.1/commGet.php?lieu_id=" + encodeURIComponent(lieuId);
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return [];
+    const data = JSON.parse(res.getContentText());
+    const list = Array.isArray(data.commentaires) ? data.commentaires : [];
+    return list.slice(0, 20).map((c) => ({
+      note: c.note, commentaire: c.commentaire, uuid: c.uuid, date_creation: c.date_creation,
+    }));
+  } catch (err) {
+    return [];
+  }
 }
 
 function doPost(e) {
