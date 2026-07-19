@@ -463,7 +463,7 @@ function renderDistanceMode(list) {
 
 // --- Google-Maps-Suche (Places Text Search, New) beim Ort-Hinzufügen ---
 
-async function saveSearchResult(place, index, dates, saveBtn) {
+async function saveSearchResult(place, index, dates, saveBtn, status = "", originalLabel = "In Plan speichern") {
   const { currentTripId, places } = getState();
   if (!currentTripId) {
     onStatus("Bitte zuerst einen Urlaub auswählen oder anlegen.");
@@ -476,7 +476,8 @@ async function saveSearchResult(place, index, dates, saveBtn) {
     tripId: currentTripId,
     order: places.length,
     name: place.displayName?.text || "",
-    category: selectedCategoryByResult[index] || "",
+    category: selectedCategoryByResult[index]
+      || (place.source === "park4night" ? (getCategories().find((c) => /camp/i.test(c.label))?.id || "") : ""),
     arrivalDate: dates.arrivalDate,
     departureDate: dates.departureDate,
     address: place.formattedAddress || "",
@@ -488,20 +489,39 @@ async function saveSearchResult(place, index, dates, saveBtn) {
     photoRef: place.photos?.[0]?.thumb || place.photos?.[0]?.name || "",
     rating: place.rating ?? "",
     userRatingCount: place.userRatingCount ?? "",
+    status,
   };
 
   try {
     await createPlace(record);
     setPlaces([...places, record]);
     addMode = null;
-    onStatus(`"${record.name}" zum Plan hinzugefügt.`);
+    onStatus(status === "interested" ? `"${record.name}" vorgemerkt.` : `"${record.name}" zum Plan hinzugefügt.`);
     render();
   } catch (err) {
     saveBtn.disabled = false;
-    saveBtn.textContent = "In Plan speichern";
+    saveBtn.textContent = originalLabel;
     onStatus(`Fehler beim Speichern: ${friendlyError(err)}`);
     console.error(err);
   }
+}
+
+// Baut das Objekt, das openPlaceDetailModal() aus einem noch nicht
+// gespeicherten Suchergebnis erwartet -- bei Google reicht placeId (die
+// Detailansicht lädt den Rest live nach), park4night hat keinen
+// "per ID neu abrufen"-Endpunkt und bekommt deshalb die bereits vorhandenen
+// Daten aus dem Suchergebnis direkt mit (analog zu js/inspire.js).
+function detailModalSeed(place) {
+  if (place.source === "park4night") {
+    return {
+      name: place.displayName?.text || "",
+      placeId: place.id,
+      photoRef: place.photos?.[0]?.name || "",
+      address: place.formattedAddress || "",
+      note: place.note || "",
+    };
+  }
+  return { name: place.displayName?.text || "", placeId: place.id };
 }
 
 function buildResultDetailPanel(place, index) {
@@ -618,6 +638,9 @@ function renderSearchResults(container) {
       card.appendChild(addr);
     }
 
+    const actions = document.createElement("div");
+    actions.className = "inspire-card-actions";
+
     const addBtn = document.createElement("button");
     addBtn.className = "btn btn-primary";
     addBtn.textContent = expandedResultIndex === i ? "Zuklappen" : "Zu Plan hinzufügen";
@@ -625,7 +648,26 @@ function renderSearchResults(container) {
       expandedResultIndex = expandedResultIndex === i ? null : i;
       renderAddContainer();
     });
-    card.appendChild(addBtn);
+    actions.appendChild(addBtn);
+
+    const detailsBtn = document.createElement("button");
+    detailsBtn.className = "btn btn-subtle";
+    detailsBtn.textContent = "Details";
+    detailsBtn.addEventListener("click", () => openPlaceDetailModal(detailModalSeed(place)));
+    actions.appendChild(detailsBtn);
+
+    card.appendChild(actions);
+
+    const secondaryActions = document.createElement("div");
+    secondaryActions.className = "inspire-card-actions inspire-card-actions-secondary";
+    const interestBtn = document.createElement("button");
+    interestBtn.className = "btn btn-subtle";
+    interestBtn.textContent = "✓ Könnte interessant sein";
+    interestBtn.addEventListener("click", () => saveSearchResult(
+      place, i, { arrivalDate: "", departureDate: "" }, interestBtn, "interested", "✓ Könnte interessant sein"
+    ));
+    secondaryActions.appendChild(interestBtn);
+    card.appendChild(secondaryActions);
 
     if (expandedResultIndex === i) card.appendChild(buildResultDetailPanel(place, i));
 
@@ -737,7 +779,7 @@ function renderSourceTabs(container) {
 
 function renderGoogleSearchRow(container) {
   const searchRow = document.createElement("div");
-  searchRow.className = "inspire-search";
+  searchRow.className = "inspire-search inspire-search-wrap";
 
   const queryField = document.createElement("input");
   queryField.type = "text";
@@ -802,7 +844,7 @@ async function runPark4nightSearch(lat, lng) {
 
 function renderPark4nightSearchRow(container) {
   const searchRow = document.createElement("div");
-  searchRow.className = "inspire-search";
+  searchRow.className = "inspire-search inspire-search-wrap";
 
   const queryField = document.createElement("input");
   queryField.type = "text";

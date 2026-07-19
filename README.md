@@ -108,6 +108,31 @@ verlässliche Hauptquelle.
   Gemini-Prompt-Änderung nötig – die Koordinate kommt vom bereits
   aufgelösten Google-Ort).
 
+## UX-Nacharbeit (nach Milestone 11)
+
+- **Icons vereinheitlicht:** „Könnte interessant sein"-Überschrift (Plan)
+  und „Cache leeren"-Button (Einstellungen) nutzten bisher Emoji (💡/🔄)
+  statt der sonst in der App üblichen Strich-SVG-Icons (wie in der
+  Bottom-Nav) – jetzt als passende SVGs (Stern, Kreisförmige Pfeile) im
+  selben Stil (`stroke-width: 1.8`, `viewBox 0 0 24 24`). `.btn` ist dafür
+  jetzt `display: inline-flex` mit `gap`, damit Icon + Text sauber
+  ausgerichtet sind.
+- **Plan-Ortssuche: Eingabefeld auf voller Breite.** Bei Google (Text +
+  Umkreis + Suchen) und park4night (Ort + Suchen) lief bisher alles in
+  einer engen Zeile nebeneinander – das Textfeld nimmt jetzt die volle
+  Breite ein, Umkreis-Auswahl/Suchen-Button stehen darunter
+  (`.inspire-search-wrap`, neue CSS-Klasse, betrifft nur die Plan-Suche,
+  nicht Inspires eigene Suchzeile).
+- **Plan-Suchergebnisse mit „Details"/„Könnte interessant sein":** die
+  Ergebniskarten beim Ort-Hinzufügen zeigten bisher nur „Zu Plan
+  hinzufügen" (klappt die Kategorie-/Datums-Auswahl auf). Jetzt zusätzlich
+  „Details" (öffnet die Detailansicht direkt, ohne die Auswahl aufzuklappen)
+  und „✓ Könnte interessant sein" (speichert sofort mit Status
+  `"interested"`, ohne Kategorie/Termine – wie bei Inspires
+  Vorschlagskarten). `saveSearchResult()` hat dafür einen optionalen
+  `status`-Parameter bekommen; für park4night-Treffer greift dieselbe
+  „Camping"-Kategorie-Vorbelegung wie beim regulären Speichern.
+
 ## Stand: Milestone 10 – Cache-Reset, Zoom-Sperre, echte Header-Fotos, sortierbare Touren/Kategorien
 
 - **Cache-Löschen-Button** in den Einstellungen: meldet den Service Worker
