@@ -87,6 +87,24 @@ function groupedByDate() {
   return groups;
 }
 
+// Fügt einen "Heute"-Eintrag an der chronologisch richtigen Stelle zwischen
+// den Datums-Gruppen ein (vor "Ohne Datum", falls vorhanden) -- rein
+// visueller Fortschritts-Marker auf der Zeitachse, keine echte Gruppe mit
+// Orten. Übersprungen, falls "heute" bereits eine echte Datums-Gruppe ist
+// (sonst zwei Überschriften für denselben Tag).
+function withTodayMarker(groups) {
+  const today = new Date().toISOString().slice(0, 10);
+  const undated = groups.find((g) => g.id === "__none__");
+  const dated = groups.filter((g) => g.id !== "__none__");
+  if (dated.some((g) => g.id === today)) return groups;
+
+  const marker = { id: "__today__", label: "Heute", places: [], isToday: true };
+  const insertAt = dated.findIndex((g) => g.id > today);
+  const withMarker = dated.slice();
+  withMarker.splice(insertAt === -1 ? withMarker.length : insertAt, 0, marker);
+  return undated ? [...withMarker, undated] : withMarker;
+}
+
 function formatMeta(place) {
   const parts = [];
   if (place.arrivalDate) parts.push(place.departureDate ? `${place.arrivalDate} – ${place.departureDate}` : place.arrivalDate);
@@ -410,6 +428,13 @@ function renderInterestedList() {
 function renderGroups(groups, list) {
   let visibleCount = 0;
   groups.forEach((group) => {
+    if (group.isToday) {
+      const heading = document.createElement("li");
+      heading.className = "place-group-heading place-group-heading--today";
+      heading.textContent = group.label;
+      list.appendChild(heading);
+      return;
+    }
     const visiblePlaces = group.places.filter((p) => isCategoryVisible(p.category || ""));
     if (visiblePlaces.length === 0) return;
     visibleCount += visiblePlaces.length;
@@ -804,7 +829,7 @@ function renderGoogleSearchRow(container) {
 
   const queryField = document.createElement("input");
   queryField.type = "text";
-  queryField.placeholder = "z. B. Campingplatz an der Nordsee";
+  queryField.placeholder = "z. B. Restaurant, Strand, Sehenswürdigkeit …";
 
   const radiusSelect = document.createElement("select");
   RADIUS_OPTIONS.forEach((opt) => {
@@ -1016,16 +1041,17 @@ function render() {
     });
   }
 
+  const showTimeline = viewMode === "date" && !!currentTrip.startDate && !!currentTrip.endDate;
+
   let visibleCount = 0;
   if (viewMode === "category") {
     visibleCount = renderGroups(groupedByCategory(), list);
   } else if (viewMode === "date") {
-    visibleCount = renderGroups(groupedByDate(), list);
+    visibleCount = renderGroups(showTimeline ? withTodayMarker(groupedByDate()) : groupedByDate(), list);
   } else if (viewMode === "distance") {
     visibleCount = renderDistanceMode(list);
   }
 
-  const showTimeline = viewMode === "date" && !!currentTrip.startDate && !!currentTrip.endDate;
   list.classList.toggle("trips-list--timeline", showTimeline);
 
   document.getElementById("plan-empty").classList.toggle("hidden", visibleCount > 0 || addMode !== null);

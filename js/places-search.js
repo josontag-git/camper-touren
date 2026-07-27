@@ -34,6 +34,16 @@ export function getCurrentPosition() {
   });
 }
 
+// Field-Mask bewusst auf die günstigste Places-API-(New)-Stufe beschränkt
+// (Abrechnung richtet sich nach der teuersten angefragten Feld-Kategorie --
+// rating/userRatingCount/photos sind "Atmosphere"-Felder, die teuerste
+// Stufe). Für eine Ergebnisliste reichen Name/Adresse/Koordinate; Fotos und
+// Rezensionen werden bewusst NICHT hier mitgeladen, sondern erst einmalig
+// bei Bedarf über fetchPlaceDetails() (js/place-details.js), wenn der
+// Nutzer tatsächlich "Details" antippt. googleMapsUri wird deshalb auch
+// nicht mehr mitbezahlt, sondern unten clientseitig aus der Place-ID gebaut
+// (kostenloses, öffentlich dokumentiertes URL-Schema) -- bestehender Code,
+// der place.googleMapsUri liest, funktioniert dadurch unverändert weiter.
 export async function searchGooglePlaces(query, radiusKm) {
   if (!CONFIG.GOOGLE_MAPS_API_KEY || CONFIG.GOOGLE_MAPS_API_KEY === "REPLACE_ME") {
     throw new Error("Kein Google-Maps-API-Key in js/config.js hinterlegt.");
@@ -51,7 +61,6 @@ export async function searchGooglePlaces(query, radiusKm) {
       "X-Goog-Api-Key": CONFIG.GOOGLE_MAPS_API_KEY,
       "X-Goog-FieldMask": [
         "places.id", "places.displayName", "places.formattedAddress", "places.location",
-        "places.rating", "places.userRatingCount", "places.photos", "places.googleMapsUri",
       ].join(","),
     },
     body: JSON.stringify(body),
@@ -62,5 +71,9 @@ export async function searchGooglePlaces(query, radiusKm) {
     throw new Error(`Places-API-Fehler ${res.status}: ${errBody}`);
   }
   const data = await res.json();
-  return data.places || [];
+  const places = data.places || [];
+  return places.map((p) => ({
+    ...p,
+    googleMapsUri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.displayName?.text || "Ort")}&query_place_id=${p.id}`,
+  }));
 }

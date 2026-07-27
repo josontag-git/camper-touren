@@ -142,6 +142,36 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 14 – Maps-API-Kosten gesenkt, "Heute"-Marker auf der Zeitachse
+
+- **Places-Suche auf günstige Felder reduziert.** Die Places-API-(New)-
+  Abrechnung richtet sich nach der teuersten angefragten Feld-Kategorie –
+  `searchGooglePlaces()` (`js/places-search.js`) fragte bisher auch
+  `rating`/`userRatingCount`/`photos`/`googleMapsUri` ab (alles
+  "Atmosphere"-Felder, teuerste Stufe), obwohl eine Ergebnisliste nur
+  Name/Adresse/Koordinate braucht. Field-Mask jetzt auf `id, displayName,
+  formattedAddress, location` beschränkt; `googleMapsUri` wird stattdessen
+  clientseitig aus der Place-ID gebaut (kostenloses, öffentlich
+  dokumentiertes URL-Schema
+  `.../maps/search/?api=1&query=<Name>&query_place_id=<id>`). Google-
+  Ergebniskarten in Plan/Inspire zeigen dadurch nur noch Name + Adresse
+  (kein Foto/keine Sterne) – Fotos und Rezensionen bleiben unverändert
+  Details-only: `fetchPlaceDetails()` (`js/place-details.js`) fragt sie
+  weiterhin ab, aber erst einmalig, wenn tatsächlich "Details" angetippt
+  wird. park4night ist von alldem nicht betroffen (eigene, kostenlose API).
+- **Google-Suchfeld-Platzhalter neutralisiert.** War nie auf Campingplätze
+  beschränkt (reiner Freitext, keine Filterung) – der Platzhaltertext
+  („z. B. Campingplatz an der Nordsee") erweckte nur diesen Eindruck. Jetzt
+  „z. B. Restaurant, Strand, Sehenswürdigkeit …".
+- **„Heute"-Marker auf der Zeitachse** (Plan Datum-Ansicht + Route): neue
+  `withTodayMarker()` in `js/plan.js`/`js/route.js` (bewusst dupliziert,
+  gleiches Muster wie das bestehende `groupedByDate()`) fügt einen
+  `Heute`-Eintrag an der chronologisch richtigen Stelle zwischen den
+  Datums-Gruppen ein – gefüllter Punkt in der Akzentfarbe statt der hohlen
+  Kategorie-Ringe (`.place-group-heading--today`), damit er sich klar von
+  echten Etappen abhebt. Erscheint nur, wenn die Zeitachse ohnehin aktiv
+  ist; wird übersprungen, falls "heute" bereits ein echter Termin ist.
+
 ## Stand: Milestone 13 – App-Name „Let’s Camp", park4night-Link, Route-Karte interaktiv, Ortstyp-Filter
 
 - **App umbenannt zu „Let's Camp"** (Titel, Manifest, Header-Fallback,

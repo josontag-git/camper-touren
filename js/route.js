@@ -222,6 +222,23 @@ function groupedByDate(places) {
   return groups;
 }
 
+// Fügt einen "Heute"-Eintrag an der chronologisch richtigen Stelle zwischen
+// den Datums-Gruppen ein (vor "Ohne Datum", falls vorhanden) -- rein
+// visueller Fortschritts-Marker auf der Zeitachse, keine echte Gruppe mit
+// Orten. Übersprungen, falls "heute" bereits eine echte Datums-Gruppe ist.
+function withTodayMarker(groups) {
+  const today = new Date().toISOString().slice(0, 10);
+  const undated = groups.find((g) => g.id === "__none__");
+  const dated = groups.filter((g) => g.id !== "__none__");
+  if (dated.some((g) => g.id === today)) return groups;
+
+  const marker = { id: "__today__", label: "Heute", places: [], isToday: true };
+  const insertAt = dated.findIndex((g) => g.id > today);
+  const withMarker = dated.slice();
+  withMarker.splice(insertAt === -1 ? withMarker.length : insertAt, 0, marker);
+  return undated ? [...withMarker, undated] : withMarker;
+}
+
 // Zeitachsen-Ansicht: Reihenfolge/Gruppierung nach Datum, aber die Marker-
 // Nummer bleibt die Position im ORIGINAL order-sortierten Array, damit sie
 // weiterhin exakt zum entsprechenden Kartenmarker aus renderMap() passt.
@@ -231,11 +248,16 @@ function renderTimelineList(allOrderSorted) {
   list.innerHTML = "";
 
   const markerNumberById = new Map(allOrderSorted.map((p, i) => [p.id, i + 1]));
-  groupedByDate(allOrderSorted).forEach((group) => {
+  withTodayMarker(groupedByDate(allOrderSorted)).forEach((group) => {
     const heading = document.createElement("li");
+    heading.textContent = group.label;
+    if (group.isToday) {
+      heading.className = "place-group-heading place-group-heading--today";
+      list.appendChild(heading);
+      return;
+    }
     heading.className = "place-group-heading";
     heading.style.setProperty("--category-color", group.color);
-    heading.textContent = group.label;
     list.appendChild(heading);
 
     group.places.forEach((place) => {

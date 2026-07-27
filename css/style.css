@@ -660,6 +660,18 @@ html, body {
   margin-left: 26px;
 }
 
+/* "Heute"-Fortschrittsmarker: gefüllter Punkt statt der hohlen
+   Kategorie-Ringe, damit er sich klar von den echten Etappen abhebt. */
+.place-group-heading--today {
+  color: var(--color-accent);
+}
+
+.trips-list--timeline .place-group-heading--today::before {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
 /* Ansichtswechsel (Plan) — Pill-Segmented-Control */
 
 .view-mode-switch {
