@@ -1,7 +1,7 @@
 // App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start und Installierbarkeit.
 // Trip-/Places-Daten selbst werden separat in localStorage gecacht (js/api.js).
 
-const CACHE_VERSION = "app-shell-v29";
+const CACHE_VERSION = "app-shell-v30";
 
 const APP_SHELL = [
   "./",
@@ -57,14 +57,21 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Cache-first für die App-Shell. Google-API-Aufrufe (Sheets/Places/Maps/Directions/
-// Apps Script) werden bewusst NICHT hier abgefangen – die laufen live; Trip-/
-// Places-Daten werden separat in localStorage gecacht (js/api.js).
+// Cache-first für die App-Shell. Google-API-Datenaufrufe (Sheets/Places-
+// Suche&Details/Maps/Directions/Apps Script) werden bewusst NICHT hier
+// abgefangen – die laufen live; Trip-/Places-Daten werden separat in
+// localStorage gecacht (js/api.js). AUSNAHME: Places-Fotos
+// (places.googleapis.com/.../media) sind reine, praktisch unveränderliche
+// Bild-Downloads (nicht "live" wie eine Suche) und werden bisher bei jedem
+// Rendern/Reload erneut kostenpflichtig abgerufen, obwohl sich das Bild
+// nicht ändert – deshalb hier gezielt vom Google-API-Ausschluss
+// ausgenommen und ganz normal cache-first behandelt wie App-Shell-Assets.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+  const isPlacesPhoto = url.hostname === "places.googleapis.com" && url.pathname.includes("/media");
   const isGoogleApi =
-    url.hostname.endsWith("googleapis.com") ||
-    url.hostname.endsWith("google.com");
+    !isPlacesPhoto &&
+    (url.hostname.endsWith("googleapis.com") || url.hostname.endsWith("google.com"));
 
   if (event.request.method !== "GET" || isGoogleApi) return;
 

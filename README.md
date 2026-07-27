@@ -171,6 +171,16 @@ verlässliche Hauptquelle.
   Kategorie-Ringe (`.place-group-heading--today`), damit er sich klar von
   echten Etappen abhebt. Erscheint nur, wenn die Zeitachse ohnehin aktiv
   ist; wird übersprungen, falls "heute" bereits ein echter Termin ist.
+- **Places-Fotos werden jetzt vom Service Worker gecacht.** Der
+  Fetch-Handler (`service-worker.js`) hat bisher jeglichen
+  `googleapis.com`/`google.com`-Traffic pauschal vom Caching ausgeschlossen
+  (richtig für Live-Daten wie Suche/Details), dadurch aber auch Foto-
+  Downloads (`places.googleapis.com/.../media`) bei jedem Rendern/Reload
+  erneut kostenpflichtig nachgeladen, obwohl sich ein Foto nie ändert.
+  Diese eine Ausnahme (`isPlacesPhoto`) wird jetzt gezielt vom
+  API-Ausschluss ausgenommen und normal cache-first behandelt; Suche/
+  Details/Maps-JS/Apps-Script bleiben unverändert live. `CACHE_VERSION` auf
+  `app-shell-v30` erhöht.
 
 ## Stand: Milestone 13 – App-Name „Let’s Camp", park4night-Link, Route-Karte interaktiv, Ortstyp-Filter
 
