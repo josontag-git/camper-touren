@@ -1,7 +1,7 @@
 // App-Shell (HTML/CSS/JS/Icons) cachen für Offline-Start und Installierbarkeit.
 // Trip-/Places-Daten selbst werden separat in localStorage gecacht (js/api.js).
 
-const CACHE_VERSION = "app-shell-v30";
+const CACHE_VERSION = "app-shell-v31";
 
 const APP_SHELL = [
   "./",
@@ -35,9 +35,18 @@ const APP_SHELL = [
   "./icons/apple-touch-icon.png",
 ];
 
+// cache.addAll() würde die App-Shell-Dateien mit dem normalen HTTP-Cache-
+// Verhalten des Browsers anfragen -- bei einem frischen Deploy (neue
+// CACHE_VERSION) sollen die Dateien aber garantiert vom Netz kommen, nicht
+// aus einer evtl. noch gültigen HTTP-Cache-Kopie. Deshalb hier jede Datei
+// einzeln mit cache:"reload" (erzwingt Revalidierung/Neuabruf) fetchen.
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_VERSION).then((cache) =>
+      Promise.all(
+        APP_SHELL.map((url) => fetch(url, { cache: "reload" }).then((res) => cache.put(url, res)))
+      )
+    )
   );
   self.skipWaiting();
 });

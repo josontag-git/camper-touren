@@ -142,6 +142,31 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 15 – Echte Build-Kennung im Footer, zuverlässiges "Cache löschen"
+
+- **Footer zeigt jetzt eine echte Build-Kennung statt eines manuell
+  gepflegten Versionsstrings.** `initVersionFooter()` (`js/main.js`) fragt
+  die öffentliche GitHub-API (`GET /repos/josontag-git/camper-touren/commits/main`)
+  ab und zeigt `Build <Kurz-SHA> · <Datum, Uhrzeit>` – da GitHub Pages hier
+  im "legacy"-Modus ohne eigenen Build-Schritt läuft, ist der letzte Commit
+  auf `main` automatisch der Deploy-Stand, kein manuelles Nachpflegen mehr
+  nötig. Kurz in `sessionStorage` gecacht (schont das unauthentifizierte
+  API-Rate-Limit), fällt bei Offline/Fehler auf den letzten bekannten Stand
+  zurück.
+- **"Cache löschen" (Admin) lädt jetzt garantiert die neue Version.** Bisher
+  reichte ein einfaches `location.reload()` nach dem Löschen von Service-
+  Worker und Cache Storage nicht zuverlässig aus, weil GitHub Pages eigene
+  Cache-Control-Header setzt und der Browser die HTML-Seite trotzdem noch
+  aus seinem normalen HTTP-Cache bedienen konnte. Der Button navigiert jetzt
+  mit einem Cache-Busting-Query-Parameter (`?fresh=<Timestamp>`, wird nach
+  dem Laden per `history.replaceState` wieder aus der URL entfernt) und
+  erzwingt damit einen echten Netzwerk-Request. Zusätzlich fetcht der neu
+  installierende Service Worker (`service-worker.js`) die App-Shell-Dateien
+  beim Install jetzt einzeln mit `cache: "reload"` statt per
+  `cache.addAll()`, damit auch dort garantiert vom Netz und nicht aus einer
+  evtl. noch gültigen HTTP-Cache-Kopie geladen wird. `CACHE_VERSION` auf
+  `app-shell-v31` erhöht.
+
 ## Stand: Milestone 14 – Maps-API-Kosten gesenkt, "Heute"-Marker auf der Zeitachse
 
 - **Places-Suche auf günstige Felder reduziert.** Die Places-API-(New)-

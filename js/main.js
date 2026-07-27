@@ -45,18 +45,35 @@ function initOfflineBanner() {
   update();
 }
 
-// Zeigt CACHE_VERSION aus service-worker.js an (frisch vom Netz geladen,
-// nicht aus dem HTTP-Cache) – so lässt sich erkennen, ob das Gerät noch auf
-// einem alten App-Shell-Stand hängt.
+// Zeigt die echte Build-Kennung (Commit-Kurz-SHA + Deploy-Zeitpunkt) statt
+// eines manuell gepflegten Versionsstrings. GitHub Pages läuft hier im
+// "legacy"-Modus ohne eigenen Build-Schritt und serviert main direkt – der
+// letzte Commit auf main IST also der Deploy-Stand. Kommt über die
+// öffentliche GitHub-API (kein Auth nötig, Repo ist public), kurz in
+// sessionStorage gecacht (schont das unauthentifizierte Rate-Limit bei
+// mehreren Reloads) und fällt bei Offline/Fehler auf den letzten bekannten
+// Stand zurück.
 async function initVersionFooter() {
   const el = document.getElementById("app-version");
+  const cacheKey = "campingAppBuildInfo";
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) el.textContent = cached;
+
   try {
-    const res = await fetch("./service-worker.js", { cache: "no-store" });
-    const text = await res.text();
-    const match = text.match(/CACHE_VERSION\s*=\s*"([^"]+)"/);
-    el.textContent = match ? `Version: ${match[1]}` : "";
+    const res = await fetch("https://api.github.com/repos/josontag-git/camper-touren/commits/main");
+    if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+    const data = await res.json();
+    const sha = (data.sha || "").slice(0, 7);
+    const date = data.commit?.committer?.date;
+    const stamp = date
+      ? new Date(date).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      : "";
+    if (!sha) return;
+    const text = `Build ${sha}${stamp ? ` · ${stamp}` : ""}`;
+    el.textContent = text;
+    sessionStorage.setItem(cacheKey, text);
   } catch {
-    el.textContent = "";
+    if (!cached) el.textContent = "";
   }
 }
 
@@ -73,7 +90,14 @@ function initChangelogBanner() {
 
 // Meldet den Service Worker ab und löscht alle Caches, damit sich das Gerät
 // beim nächsten Laden garantiert den aktuellen App-Shell-Stand vom Netz holt
-// (statt evtl. an einer alten, hartnäckig gecachten Version hängen zu bleiben).
+// (statt evtl. an einer alten, hartnäckig gecachten Version hängen zu
+// bleiben). Ein einfaches location.reload() reicht dafür NICHT: GitHub
+// Pages setzt eigene Cache-Control-Header, sodass der Browser die HTML-Seite
+// selbst nach dem Löschen des Service-Worker-Caches noch aus seinem
+// normalen HTTP-Cache bedienen könnte. Deshalb erzwingt ein Cache-Busting-
+// Query-Parameter eine echte Netzwerk-Navigation (die neu installierende
+// Service-Worker-Version holt die App-Shell-Dateien dann ihrerseits mit
+// cache:"reload" – siehe service-worker.js).
 async function clearAppCache() {
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
@@ -81,7 +105,7 @@ async function clearAppCache() {
     const keys = await caches.keys();
     await Promise.all(keys.map((k) => caches.delete(k)));
   } finally {
-    location.reload();
+    location.href = `${location.pathname}?fresh=${Date.now()}`;
   }
 }
 
@@ -232,6 +256,9 @@ function initSettingsUI() {
 }
 
 function init() {
+  if (location.search.includes("fresh=")) {
+    history.replaceState(null, "", location.pathname);
+  }
   applyColorTheme(getColorTheme());
   applyHeaderTheme(getHeaderTheme());
   initNav();
