@@ -9,7 +9,7 @@
 import { getGeminiKey } from "./settings.js";
 import { getState, setPlaces } from "./state.js";
 import { createPlace, updatePlace, deletePlace } from "./api.js";
-import { photoUrl, starRating, searchGooglePlaces } from "./places-search.js";
+import { photoUrl, starRating, searchGooglePlaces, fetchFirstPhotoRef } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
 import { friendlyError } from "./errors.js";
 import { getCategories } from "./categories.js";
@@ -132,6 +132,15 @@ async function saveSuggestion(suggestion, place, status, btn) {
   btn.disabled = true;
   btn.textContent = "Speichert …";
   const isPark4night = place.source === "park4night";
+
+  // Siehe places-search.js: die Suchergebnisse selbst tragen kein Foto mehr,
+  // beim tatsächlichen Speichern eines Orts holen wir eines nach, damit
+  // Plan/Route in der Listenansicht ein Vorschaubild zeigen können.
+  let photoRef = place.photos?.[0]?.thumb || place.photos?.[0]?.name || "";
+  if (!photoRef && !isPark4night && place.id) {
+    photoRef = await fetchFirstPhotoRef(place.id);
+  }
+
   const record = {
     id: existing?.placeId || crypto.randomUUID(),
     tripId: currentTripId,
@@ -146,7 +155,7 @@ async function saveSuggestion(suggestion, place, status, btn) {
     note: isPark4night ? (place.note || "") : "",
     placeId: place.id || "",
     createdAt: new Date().toISOString(),
-    photoRef: place.photos?.[0]?.thumb || place.photos?.[0]?.name || "",
+    photoRef,
     rating: place.rating ?? "",
     userRatingCount: place.userRatingCount ?? "",
     status,

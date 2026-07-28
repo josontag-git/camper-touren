@@ -9,7 +9,7 @@ import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
 import { getCategories, UNCATEGORIZED, categoryInfo, allCategoryIds, renderCategoryFilterChips, renderCategoryButtons } from "./categories.js";
 import { loadMapsApi } from "./maps-loader.js";
-import { photoUrl, starRating, searchGooglePlaces, getCurrentPosition } from "./places-search.js";
+import { photoUrl, starRating, searchGooglePlaces, getCurrentPosition, fetchFirstPhotoRef } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
 import { friendlyError } from "./errors.js";
 import { attachDragHandle } from "./drag-reorder.js";
@@ -496,6 +496,15 @@ async function saveSearchResult(place, index, dates, saveBtn, status = "", origi
   }
   saveBtn.disabled = true;
   saveBtn.textContent = "Speichert …";
+
+  // Die Google-Ergebnisliste selbst liefert bewusst kein Foto mehr (siehe
+  // places-search.js) -- beim tatsächlichen Speichern eines Orts aber schon,
+  // damit Plan/Route in der Listenansicht ein Vorschaubild zeigen können.
+  let photoRef = place.photos?.[0]?.thumb || place.photos?.[0]?.name || "";
+  if (!photoRef && place.source !== "park4night" && place.id) {
+    photoRef = await fetchFirstPhotoRef(place.id);
+  }
+
   const record = {
     id: crypto.randomUUID(),
     tripId: currentTripId,
@@ -511,7 +520,7 @@ async function saveSearchResult(place, index, dates, saveBtn, status = "", origi
     note: place.source === "park4night" ? place.note : "",
     placeId: place.id || "",
     createdAt: new Date().toISOString(),
-    photoRef: place.photos?.[0]?.thumb || place.photos?.[0]?.name || "",
+    photoRef,
     rating: place.rating ?? "",
     userRatingCount: place.userRatingCount ?? "",
     status,

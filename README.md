@@ -142,6 +142,21 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 16 – Vorschaubild für hinzugefügte Google-Orte
+
+- **Google-Orte zeigen jetzt auch in der Listenansicht ein Vorschaubild.**
+  Seit Milestone 14 liefert die Google-Ergebnisliste bewusst kein Foto mehr
+  (Kostengrund, siehe dort) – das führte aber dazu, dass tatsächlich zum
+  Plan hinzugefügte Google-Orte dauerhaft ohne Thumbnail blieben (Plan-,
+  Wunschlisten- und Route-Listenzeilen lesen `place.photoRef`, das nie
+  gesetzt wurde). Neue Funktion `fetchFirstPhotoRef(placeId)`
+  (`js/places-search.js`) holt beim tatsächlichen Speichern eines
+  Google-Orts (nicht in der Ergebnisliste!) einmalig nur das erste Foto
+  nach – ein einzelner, günstiger Zusatz-Call pro gespeichertem Ort statt
+  eines "Atmosphere"-Felds in jeder Suche. Eingebaut in `saveSearchResult()`
+  (`js/plan.js`) und `saveSuggestion()` (`js/inspire.js`); park4night-Orte
+  unverändert, die liefern ihr Foto weiterhin direkt aus der eigenen Suche.
+
 ## Stand: Milestone 15 – Echte Build-Kennung im Footer, zuverlässiges "Cache löschen"
 
 - **Footer zeigt jetzt eine echte Build-Kennung statt eines manuell

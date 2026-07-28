@@ -77,3 +77,25 @@ export async function searchGooglePlaces(query, radiusKm) {
     googleMapsUri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.displayName?.text || "Ort")}&query_place_id=${p.id}`,
   }));
 }
+
+// Holt NUR das erste Foto eines Orts (kein rating/reviews/etc.) -- genutzt,
+// wenn ein Google-Suchergebnis tatsächlich zum Plan hinzugefügt wird, damit
+// die Listenansicht (Plan/Route) ein Vorschaubild zeigen kann. Die
+// Ergebnisliste selbst fragt bewusst keine Fotos ab (siehe oben), aber ein
+// einmaliger, günstiger Zusatz-Call beim Speichern eines einzelnen Orts ist
+// unkritisch – anders als ein "Atmosphere"-Feld in jeder Listensuche.
+export async function fetchFirstPhotoRef(placeId) {
+  try {
+    const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+      headers: {
+        "X-Goog-Api-Key": CONFIG.GOOGLE_MAPS_API_KEY,
+        "X-Goog-FieldMask": "photos",
+      },
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data.photos?.[0]?.name || "";
+  } catch {
+    return "";
+  }
+}
