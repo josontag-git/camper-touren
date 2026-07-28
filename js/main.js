@@ -18,6 +18,7 @@ import { initRoute } from "./route.js";
 import { initInspire, refreshInspireKeyHint } from "./inspire.js";
 import { initPullToRefresh } from "./pull-to-refresh.js";
 import { renderCategoriesSettings, loadCategories } from "./categories.js";
+import { loadSections } from "./sections.js";
 import { ADMIN_AMENITY_OPTIONS, ADMIN_PLACE_TYPE_OPTIONS } from "./park4night.js";
 import { friendlyError } from "./errors.js";
 import { LATEST_CHANGE, isChangelogDismissed, dismissChangelog } from "./changelog.js";
@@ -196,6 +197,7 @@ async function loadTrips() {
     const trips = await getTrips();
     setTrips(trips);
     await loadCategories();
+    await loadSections();
     setStatus(wasLastLoadOffline() ? "Offline – zeige zuletzt gespeicherten Stand." : "");
     if (trips.length === 0) openNewTripForm();
   } catch (err) {

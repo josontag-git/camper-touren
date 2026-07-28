@@ -102,6 +102,27 @@ export function deleteCategory(id) {
   return postAction("category", "delete", { id });
 }
 
+// null = Apps-Script-Bereitstellung kennt "sections" noch nicht (Code.gs
+// wurde noch nicht neu bereitgestellt) -> sections.js darf dann NICHT
+// versuchen, ins Sheet zu schreiben (gleiche Schutzlogik wie bei Categories,
+// siehe getCategoriesData()).
+export async function getSectionsData() {
+  const data = cache || (await fetchAll());
+  return Array.isArray(data.sections) ? data.sections : null;
+}
+
+export function createSection(section) {
+  return postAction("section", "upsert", section);
+}
+
+export function updateSection(section) {
+  return postAction("section", "upsert", section);
+}
+
+export function deleteSection(id) {
+  return postAction("section", "delete", { id });
+}
+
 // park4night-Proxy (siehe apps-script/Code.gs) -- normale GET-Anfrage (nicht
 // postAction/no-cors), da die Antwort hier tatsächlich gelesen werden muss.
 export async function searchPark4night(lat, lng) {

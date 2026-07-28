@@ -142,6 +142,38 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 17 – Abschnitte für Plan + Route
+
+- **Neue, benutzerdefinierte Abschnitte** ("Etappe 1", "Küste" o. ä.) zum
+  manuellen Gruppieren der Orte innerhalb eines Urlaubs – macht lange Touren
+  in Plan/Route übersichtlicher. Neues Sheet `Sections` (`id, tripId, label,
+  color, order`, siehe `apps-script/Code.gs`), neue Spalte `sectionId` auf
+  `Places`. **Wichtig: Die Apps-Script-Bereitstellung muss dafür neu
+  ausgerollt werden** (Erweiterungen → Apps Script → Bereitstellen → Bereit-
+  stellungen verwalten → Neue Version), sonst bleiben Abschnitte inaktiv
+  (gleiche Schutzlogik wie bei den Kategorien in Milestone 8 – `js/sections.js`
+  schreibt erst nach erfolgreichem Redeploy ins Sheet, um ein Fehl-Schreiben
+  in ein falsches Sheet bei altem Code.gs zu verhindern).
+- **Plan:** neuer 4. Ansicht-Button "Abschnitt" neben Kategorie/Datum/
+  Entfernung. Ein einklappbares "Abschnitte verwalten"-Panel (anlegen/
+  umbenennen/Farbe ändern/löschen/sortieren, `js/sections.js`, spiegelt fast
+  1:1 die bestehende Kategorienverwaltung) sitzt über der gruppierten Liste.
+  **Orte lassen sich per Drag zwischen Abschnitten verschieben** – anders als
+  bei Kategorie (dort ist Drag bewusst auf Umsortieren INNERHALB der Gruppe
+  beschränkt) sind hier auch die Gruppen-Überschriften selbst gültige
+  Drop-Ziele, damit sich ein Ort auch in einen noch leeren, frisch
+  angelegten Abschnitt ziehen lässt. `js/drag-reorder.js` selbst musste dafür
+  nicht angefasst werden (vollständig generisch).
+- **Route:** der bisherige automatische Wechsel zwischen Reihenfolge- und
+  Datumsansicht ist jetzt ein expliziter 3-Wege-Schalter ("Reihenfolge" /
+  "Datum" / "Abschnitt"), Default unverändert (Datum falls der Urlaub einen
+  Zeitraum hat, sonst Reihenfolge). Abschnitt-Ansicht ist reine Anzeige ohne
+  Drag – Abschnitte werden ausschließlich in Plan verwaltet/befüllt.
+- Löschen eines Abschnitts fasst vorhandene Orte NICHT an (kein Bulk-Update
+  nötig) – ein Ort mit einer nicht mehr existierenden `sectionId` fällt beim
+  Rendern automatisch auf "Ohne Abschnitt" zurück (`sectionInfo()`-Fallback,
+  exakt wie beim Löschen einer Kategorie).
+
 ## Stand: Milestone 16 – Vorschaubild für hinzugefügte Google-Orte
 
 - **Google-Orte zeigen jetzt auch in der Listenansicht ein Vorschaubild.**
@@ -583,21 +615,24 @@ fehlende Kopfzeilen-Spalten werden beim nächsten Zugriff automatisch ergänzt
 (additive Migration in `getOrCreateSheet`, bestehende Zeilen bleiben unberührt):
 
 - `Trips`: `id, name, startDate, endDate, note, createdAt, updatedAt, order`
-- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt, photoRef, rating, userRatingCount, status`
+- `Places`: `id, tripId, order, name, lat, lng, address, category, arrivalDate, departureDate, note, placeId, createdAt, photoRef, rating, userRatingCount, status, sectionId`
 - `Categories`: `id, label, color, order`
+- `Sections`: `id, tripId, label, color, order`
 
 `photoRef`/`rating`/`userRatingCount` werden nur bei Orten aus einer
 Places-Suche befüllt (Plan-Suche oder Inspire-Vorschau) – manuell angelegte
 Orte bleiben dort leer, Listen zeigen dann wie bisher nur Text ohne
 Vorschaubild/Sterne. `status` ist `""` (fest eingeplant) oder `"interested"`
-("Könnte interessant sein", siehe Wunschliste in Plan). `placeId` trägt bei
-park4night-Orten das Präfix `"p4n:"` (z. B. `"p4n:582030"`), sonst eine
-rohe Google-Place-ID – daran erkennt `js/place-details.js`, welche
-Detailansicht zu laden ist (kein eigenes Sheet-Feld nötig). **Nach dem
-Update von `Code.gs`** muss im Sheet wie gewohnt eine neue Version der
-Apps-Script-Bereitstellung erstellt werden (siehe oben, "App mit dem Sheet
-verbinden") – bis dahin bleiben Kategorien lokal (siehe
-Kategorienverwaltung) bzw. park4night einfach leer, Trips/Places
+("Könnte interessant sein", siehe Wunschliste in Plan). `sectionId` verweist
+auf einen Eintrag in `Sections` (leer = "Ohne Abschnitt", siehe
+Abschnittsverwaltung in Plan). `placeId` trägt bei park4night-Orten das
+Präfix `"p4n:"` (z. B. `"p4n:582030"`), sonst eine rohe Google-Place-ID –
+daran erkennt `js/place-details.js`, welche Detailansicht zu laden ist (kein
+eigenes Sheet-Feld nötig). **Nach dem Update von `Code.gs`** muss im Sheet
+wie gewohnt eine neue Version der Apps-Script-Bereitstellung erstellt werden
+(siehe oben, "App mit dem Sheet verbinden") – bis dahin bleiben
+Kategorien/Abschnitte lokal bzw. inaktiv (siehe Kategorien-/
+Abschnittsverwaltung) bzw. park4night einfach leer, Trips/Places
 funktionieren unverändert weiter.
 
 ## Mögliche nächste Schritte

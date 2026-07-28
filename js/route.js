@@ -9,11 +9,13 @@ import { photoUrl, starRating } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
 import { deletePlace } from "./api.js";
 import { friendlyError } from "./errors.js";
+import { getSectionsForTrip, UNSECTIONED } from "./sections.js";
 
 let onStatus = () => {};
 let map = null;
 let markers = [];
 let infoWindow = null;
+let routeViewMode = null; // null = noch nicht gewählt -> Default wird beim ersten Render pro Urlaub bestimmt; sonst "order" | "date" | "section"
 
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
@@ -266,10 +268,52 @@ function renderTimelineList(allOrderSorted) {
   });
 }
 
+// Gruppiert nach Abschnitt (gleiches Muster wie plan.js' groupedBySection())
+// -- reine Anzeige, kein Drag hier: Abschnitte werden ausschließlich in Plan
+// angelegt/befüllt, Route spiegelt nur den aktuellen Stand.
+function groupedBySection(places, tripId) {
+  return [...getSectionsForTrip(tripId), UNSECTIONED].map((section) => ({
+    ...section,
+    places: places.filter((p) => (p.sectionId || "") === section.id),
+  }));
+}
+
+function renderSectionList(allOrderSorted, tripId) {
+  const list = document.getElementById("route-list");
+  list.classList.remove("trips-list--timeline");
+  list.innerHTML = "";
+
+  const markerNumberById = new Map(allOrderSorted.map((p, i) => [p.id, i + 1]));
+  groupedBySection(allOrderSorted, tripId).forEach((group) => {
+    if (group.places.length === 0) return;
+    const heading = document.createElement("li");
+    heading.className = "place-group-heading";
+    heading.style.setProperty("--category-color", group.color);
+    heading.textContent = `${group.label} (${group.places.length})`;
+    list.appendChild(heading);
+
+    group.places.forEach((place) => {
+      list.appendChild(buildRouteRow(place, markerNumberById.get(place.id)));
+    });
+  });
+}
+
+function initRouteViewModeSwitch() {
+  const switchEl = document.getElementById("route-view-mode-switch");
+  switchEl.querySelectorAll(".view-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      routeViewMode = btn.dataset.mode;
+      switchEl.querySelectorAll(".view-mode-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
+      render();
+    });
+  });
+}
+
 function render() {
   const { currentTrip, places } = getState();
   const emptyEl = document.getElementById("route-empty");
   const fullRouteBtn = document.getElementById("open-full-route-btn");
+  const switchEl = document.getElementById("route-view-mode-switch");
 
   if (!currentTrip) {
     emptyEl.classList.remove("hidden");
@@ -277,6 +321,7 @@ function render() {
     document.getElementById("route-map").classList.add("hidden");
     document.getElementById("route-list").innerHTML = "";
     fullRouteBtn.classList.add("hidden");
+    switchEl.classList.add("hidden");
     return;
   }
 
@@ -286,14 +331,23 @@ function render() {
     document.getElementById("route-map").classList.add("hidden");
     document.getElementById("route-list").innerHTML = "";
     fullRouteBtn.classList.add("hidden");
+    switchEl.classList.add("hidden");
     return;
   }
 
   emptyEl.classList.add("hidden");
+  switchEl.classList.remove("hidden");
+  if (routeViewMode === null) {
+    routeViewMode = currentTrip.startDate && currentTrip.endDate ? "date" : "order";
+  }
+  switchEl.querySelectorAll(".view-mode-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.mode === routeViewMode));
+
   const all = sortedPlaces();
   renderMap(all);
-  if (currentTrip.startDate && currentTrip.endDate) {
+  if (routeViewMode === "date") {
     renderTimelineList(all);
+  } else if (routeViewMode === "section") {
+    renderSectionList(all, currentTrip.id);
   } else {
     renderList(all);
   }
@@ -305,6 +359,7 @@ function render() {
 
 export function initRoute(statusCallback) {
   onStatus = statusCallback || (() => {});
+  initRouteViewModeSwitch();
   subscribe(render);
   render();
 }

@@ -7,6 +7,7 @@ const STORAGE_CURRENT_TRIP = "campingAppCurrentTripId";
 let trips = [];
 let places = [];
 let categories = [];
+let sections = [];
 let currentTripId = localStorage.getItem(STORAGE_CURRENT_TRIP) || null;
 let categoryFilter = null; // null = alle Kategorien sichtbar; sonst Set aktiver Kategorie-IDs
 
@@ -21,6 +22,7 @@ export function getState() {
     trips,
     places,
     categories,
+    sections,
     currentTripId,
     currentTrip: trips.find((t) => t.id === currentTripId) || null,
     categoryFilter,
@@ -50,6 +52,11 @@ export function setPlaces(newPlaces) {
 
 export function setCategories(newCategories) {
   categories = newCategories;
+  notify();
+}
+
+export function setSections(newSections) {
+  sections = newSections;
   notify();
 }
 

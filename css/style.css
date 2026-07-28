@@ -618,6 +618,16 @@ html, body {
   margin-top: 0;
 }
 
+/* Abschnitts-Überschriften sind beim Drag&Drop (Plan, Abschnitt-Ansicht)
+   selbst ein gültiges Drop-Ziel -- sonst ließe sich ein Ort nie in einen
+   noch leeren Abschnitt ziehen (dort gibt es keine Ort-Zeile zum Drüber-
+   ziehen). Gleiche Optik wie .place-item.drop-target. */
+.place-group-heading.drop-target {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-lg);
+}
+
 /* Vertikale Zeitachse (Plan-Datumsansicht + Route), nur wenn der Urlaub
    einen festen Zeitraum hat – siehe trips-list--timeline in plan.js/route.js.
    Die Linie sitzt im Koordinatensystem der Liste selbst (kein Padding auf

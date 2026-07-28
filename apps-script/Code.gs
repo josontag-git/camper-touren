@@ -10,16 +10,20 @@ const SHEET_PLACES = "Places";
 const PLACES_HEADERS = [
   "id", "tripId", "order", "name", "lat", "lng", "address",
   "category", "arrivalDate", "departureDate", "note", "placeId", "createdAt",
-  "photoRef", "rating", "userRatingCount", "status",
+  "photoRef", "rating", "userRatingCount", "status", "sectionId",
 ];
 
 const SHEET_CATEGORIES = "Categories";
 const CATEGORIES_HEADERS = ["id", "label", "color", "order"];
 
+const SHEET_SECTIONS = "Sections";
+const SECTIONS_HEADERS = ["id", "tripId", "label", "color", "order"];
+
 const ENTITIES = {
   trip: [SHEET_TRIPS, TRIPS_HEADERS],
   place: [SHEET_PLACES, PLACES_HEADERS],
   category: [SHEET_CATEGORIES, CATEGORIES_HEADERS],
+  section: [SHEET_SECTIONS, SECTIONS_HEADERS],
 };
 
 function doGet(e) {
@@ -34,6 +38,7 @@ function doGet(e) {
     trips: readSheet(SHEET_TRIPS, TRIPS_HEADERS),
     places: readSheet(SHEET_PLACES, PLACES_HEADERS),
     categories: readSheet(SHEET_CATEGORIES, CATEGORIES_HEADERS),
+    sections: readSheet(SHEET_SECTIONS, SECTIONS_HEADERS),
   });
 }
 

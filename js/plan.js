@@ -8,6 +8,7 @@
 import { createPlace, updatePlace, deletePlace } from "./api.js";
 import { getState, subscribe, setPlaces, toggleCategoryFilter, isCategoryVisible } from "./state.js";
 import { getCategories, UNCATEGORIZED, categoryInfo, allCategoryIds, renderCategoryFilterChips, renderCategoryButtons } from "./categories.js";
+import { getSectionsForTrip, UNSECTIONED, renderSectionsSettings } from "./sections.js";
 import { loadMapsApi } from "./maps-loader.js";
 import { photoUrl, starRating, searchGooglePlaces, getCurrentPosition, fetchFirstPhotoRef } from "./places-search.js";
 import { openPlaceDetailModal } from "./place-details.js";
@@ -26,8 +27,9 @@ const RADIUS_OPTIONS = [
 
 let onStatus = () => {};
 let editingPlaceId = null; // Bearbeiten eines bestehenden Orts inline in der Liste
-let viewMode = "date"; // "category" | "date" | "distance"
+let viewMode = "date"; // "category" | "date" | "distance" | "section"
 let userPosition = null; // { lat, lng }, für viewMode "distance"
+let manageSectionsOpen = false;
 
 let addMode = null; // null | "search" | "manual"
 let searchSource = "google"; // "google" | "park4night", siehe renderSourceTabs()
@@ -69,6 +71,15 @@ function groupedByCategory() {
   return [...getCategories(), UNCATEGORIZED].map((cat) => ({
     ...cat,
     places: all.filter((p) => (p.category || "") === cat.id),
+  }));
+}
+
+function groupedBySection() {
+  const all = plannedPlaces();
+  const { currentTripId } = getState();
+  return [...getSectionsForTrip(currentTripId), UNSECTIONED].map((section) => ({
+    ...section,
+    places: all.filter((p) => (p.sectionId || "") === section.id),
   }));
 }
 
@@ -119,7 +130,7 @@ function createViewRow(place, metaOverride) {
   li.dataset.category = place.category || "";
   li.style.setProperty("--category-color", categoryInfo(place.category).color);
 
-  const draggable = viewMode === "category";
+  const draggable = viewMode === "category" || viewMode === "section";
 
   const info = document.createElement("div");
   info.className = "trip-info";
@@ -169,12 +180,25 @@ function createViewRow(place, metaOverride) {
     handle.textContent = "⠿";
     handle.setAttribute("role", "button");
     handle.setAttribute("aria-label", "Ziehen zum Sortieren");
-    const category = place.category || "";
-    attachDragHandle(handle, li, (draggedLi) => {
-      const listEl = draggedLi.parentElement;
-      return [...listEl.querySelectorAll(".place-item")]
-        .filter((el) => el !== draggedLi && el.dataset.category === category);
-    }, onReorder);
+    if (viewMode === "category") {
+      const category = place.category || "";
+      attachDragHandle(handle, li, (draggedLi) => {
+        const listEl = draggedLi.parentElement;
+        return [...listEl.querySelectorAll(".place-item")]
+          .filter((el) => el !== draggedLi && el.dataset.category === category);
+      }, onReorder);
+    } else {
+      // Abschnitt-Modus: anders als bei Kategorie darf hier auch über
+      // Gruppen hinweg gezogen werden (das ist der eigentliche Zweck --
+      // Orte zwischen Abschnitten verschieben). Gruppen-Überschriften zählen
+      // als Ziel mit dazu (dataset.id "section:"+id, siehe renderGroups()),
+      // sonst ließe sich ein Ort nie in einen noch LEEREN Abschnitt ziehen.
+      attachDragHandle(handle, li, (draggedLi) => {
+        const listEl = draggedLi.parentElement;
+        return [...listEl.querySelectorAll(".place-item, .place-group-heading[data-section-target]")]
+          .filter((el) => el !== draggedLi);
+      }, onSectionDrop);
+    }
     li.append(handle, ...thumbPart, info, editBtn, delBtn);
   } else {
     li.append(...thumbPart, info, editBtn, delBtn);
@@ -339,6 +363,40 @@ async function onReorder(sourceId, targetId) {
   }
 }
 
+// Ziel ist eine Abschnitts-Überschrift ("section:"+id) -> Ort bekommt diese
+// sectionId und wandert ans Ende der Gesamtreihenfolge. Ziel ist eine
+// Ort-Zeile -> Ort übernimmt deren sectionId UND wird an deren Position
+// eingefügt (wie onReorder(), nur zusätzlich mit Abschnitts-Wechsel).
+async function onSectionDrop(sourceId, targetId) {
+  const ordered = sortedPlaces();
+  const fromIndex = ordered.findIndex((p) => p.id === sourceId);
+  if (fromIndex === -1) return;
+  const [moved] = ordered.splice(fromIndex, 1);
+
+  if (targetId.startsWith("section:")) {
+    moved.sectionId = targetId.slice("section:".length);
+    ordered.push(moved);
+  } else {
+    const toIndex = ordered.findIndex((p) => p.id === targetId);
+    if (toIndex === -1) { ordered.splice(fromIndex, 0, moved); return; }
+    moved.sectionId = ordered[toIndex].sectionId || "";
+    ordered.splice(toIndex, 0, moved);
+  }
+
+  const reindexed = ordered.map((p, i) => ({ ...p, order: i }));
+  setPlaces(reindexed);
+  render();
+  // Nacheinander statt parallel: Apps Script hat kein Locking auf
+  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
+  // dasselbe Sheet können sich gegenseitig überschreiben.
+  try {
+    for (const p of reindexed) await updatePlace(p);
+  } catch (err) {
+    onStatus(`Fehler beim Verschieben: ${friendlyError(err)}`);
+    console.error(err);
+  }
+}
+
 let distanceAttempted = false;
 
 function requestUserPosition() {
@@ -425,7 +483,11 @@ function renderInterestedList() {
   });
 }
 
-function renderGroups(groups, list) {
+// sectionMode: Abschnitts-Überschriften bleiben auch bei 0 Orten sichtbar
+// (sonst könnte man nie einen Ort in einen frisch angelegten, leeren
+// Abschnitt ziehen) und bekommen dataset.id/data-section-target, damit sie
+// in createViewRow()'s Abschnitt-Drag als Drop-Ziel erkannt werden.
+function renderGroups(groups, list, sectionMode = false) {
   let visibleCount = 0;
   groups.forEach((group) => {
     if (group.isToday) {
@@ -436,13 +498,17 @@ function renderGroups(groups, list) {
       return;
     }
     const visiblePlaces = group.places.filter((p) => isCategoryVisible(p.category || ""));
-    if (visiblePlaces.length === 0) return;
+    if (visiblePlaces.length === 0 && !sectionMode) return;
     visibleCount += visiblePlaces.length;
 
     const heading = document.createElement("li");
     heading.className = "place-group-heading";
     heading.style.setProperty("--category-color", group.color);
     heading.textContent = `${group.label} (${visiblePlaces.length})`;
+    if (sectionMode) {
+      heading.dataset.id = `section:${group.id}`;
+      heading.dataset.sectionTarget = "true";
+    }
     list.appendChild(heading);
 
     visiblePlaces.forEach((place) => {
@@ -1052,6 +1118,18 @@ function render() {
 
   const showTimeline = viewMode === "date" && !!currentTrip.startDate && !!currentTrip.endDate;
 
+  const manageBtn = document.getElementById("manage-sections-btn");
+  const manageContainer = document.getElementById("manage-sections-container");
+  manageBtn.classList.toggle("hidden", viewMode !== "section");
+  manageBtn.textContent = manageSectionsOpen ? "Abschnitte verwalten ✕" : "Abschnitte verwalten";
+  if (viewMode === "section" && manageSectionsOpen) {
+    manageContainer.classList.remove("hidden");
+    renderSectionsSettings(manageContainer, currentTrip.id);
+  } else {
+    manageContainer.classList.add("hidden");
+    manageContainer.innerHTML = "";
+  }
+
   let visibleCount = 0;
   if (viewMode === "category") {
     visibleCount = renderGroups(groupedByCategory(), list);
@@ -1059,6 +1137,8 @@ function render() {
     visibleCount = renderGroups(showTimeline ? withTodayMarker(groupedByDate()) : groupedByDate(), list);
   } else if (viewMode === "distance") {
     visibleCount = renderDistanceMode(list);
+  } else if (viewMode === "section") {
+    visibleCount = renderGroups(groupedBySection(), list, true);
   }
 
   list.classList.toggle("trips-list--timeline", showTimeline);
@@ -1067,10 +1147,11 @@ function render() {
 }
 
 function initViewModeSwitch() {
-  document.querySelectorAll(".view-mode-btn").forEach((btn) => {
+  const switchEl = document.getElementById("plan-view-mode-switch");
+  switchEl.querySelectorAll(".view-mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       viewMode = btn.dataset.mode;
-      document.querySelectorAll(".view-mode-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
+      switchEl.querySelectorAll(".view-mode-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
       if (viewMode === "distance") distanceAttempted = false; // bei jedem Klick neu versuchen
       render();
     });
@@ -1084,6 +1165,10 @@ export function initPlan(statusCallback) {
     render();
   });
   initViewModeSwitch();
+  document.getElementById("manage-sections-btn").addEventListener("click", () => {
+    manageSectionsOpen = !manageSectionsOpen;
+    render();
+  });
   subscribe(render);
   render();
 }

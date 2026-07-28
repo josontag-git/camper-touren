@@ -81,12 +81,15 @@
           </h3>
           <ul id="interested-places-list" class="trips-list"></ul>
         </div>
-        <div class="view-mode-switch">
+        <div id="plan-view-mode-switch" class="view-mode-switch">
           <button class="view-mode-btn" data-mode="category">Kategorie</button>
           <button class="view-mode-btn is-active" data-mode="date">Datum</button>
           <button class="view-mode-btn" data-mode="distance">Entfernung</button>
+          <button class="view-mode-btn" data-mode="section">Abschnitt</button>
         </div>
         <div id="place-category-filters" class="category-filters"></div>
+        <button id="manage-sections-btn" class="btn btn-ghost-dark hidden">Abschnitte verwalten</button>
+        <div id="manage-sections-container" class="hidden"></div>
         <div id="plan-empty" class="empty-state hidden">
           <p>Noch keine Orte im Plan.</p>
         </div>
@@ -97,6 +100,11 @@
         <div id="route-empty" class="empty-state hidden"></div>
         <div id="route-map" class="route-map hidden"></div>
         <button id="open-full-route-btn" class="btn btn-primary hidden">Gesamte Route in Google Maps öffnen</button>
+        <div id="route-view-mode-switch" class="view-mode-switch">
+          <button class="view-mode-btn" data-mode="order">Reihenfolge</button>
+          <button class="view-mode-btn" data-mode="date">Datum</button>
+          <button class="view-mode-btn" data-mode="section">Abschnitt</button>
+        </div>
         <ul id="route-list" class="trips-list"></ul>
       </section>
 
