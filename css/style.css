@@ -424,13 +424,44 @@ html, body {
   --gmpx-font-family-base: inherit;
 }
 
-.trip-edit-fields input {
+.trip-edit-fields input,
+.trip-edit-fields select {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 10px 12px;
   font-size: 0.9rem;
   background: var(--color-bg);
   color: var(--color-text);
+  width: 100%;
+}
+
+/* Ankunft/Abreise: echtes Label statt eines leeren Date-Inputs -- Safari
+   ignoriert das placeholder-Attribut bei type="date" komplett, ein
+   eingebettetes <span> funktioniert dagegen überall zuverlässig. */
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: var(--color-bg);
+}
+
+.date-field span {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.date-field input[type="date"] {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  padding: 10px 0;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.9rem;
 }
 
 .trip-edit-actions {

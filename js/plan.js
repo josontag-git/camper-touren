@@ -39,6 +39,23 @@ let selectedCategoryByResult = {};
 let resultsMap = null;
 let resultsMarkers = [];
 
+// Native Date-Inputs unterstützen kein zuverlässiges placeholder-Attribut
+// (Safari ignoriert es für type="date" komplett) -- deshalb ein echtes,
+// kleines Label ("Ankunft"/"Abreise") fest im Feld statt eines leeren,
+// nichtssagenden Inputs. Gibt Wrapper (zum Einfügen) + das rohe Input
+// (zum Lesen/Setzen von .value) zurück.
+function createLabeledDateField(labelText, value) {
+  const wrap = document.createElement("label");
+  wrap.className = "date-field";
+  const span = document.createElement("span");
+  span.textContent = labelText;
+  const input = document.createElement("input");
+  input.type = "date";
+  input.value = value || "";
+  wrap.append(span, input);
+  return { wrap, input };
+}
+
 function sortedPlaces() {
   return getState().places.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 }
@@ -229,13 +246,8 @@ function createFormRow(place) {
     categoryField.appendChild(opt);
   });
 
-  const arrivalField = document.createElement("input");
-  arrivalField.type = "date";
-  arrivalField.value = place?.arrivalDate || "";
-
-  const departureField = document.createElement("input");
-  departureField.type = "date";
-  departureField.value = place?.departureDate || "";
+  const { wrap: arrivalWrap, input: arrivalField } = createLabeledDateField("Ankunft", place?.arrivalDate);
+  const { wrap: departureWrap, input: departureField } = createLabeledDateField("Abreise", place?.departureDate);
 
   const addressField = document.createElement("input");
   addressField.type = "text";
@@ -261,7 +273,7 @@ function createFormRow(place) {
 
   const fieldsWrap = document.createElement("div");
   fieldsWrap.className = "trip-edit-fields";
-  fieldsWrap.append(nameField, categoryField, arrivalField, departureField, addressField, latField, lngField, noteField);
+  fieldsWrap.append(nameField, categoryField, arrivalWrap, departureWrap, addressField, latField, lngField, noteField);
 
   const actions = document.createElement("div");
   actions.className = "trip-edit-actions";
@@ -706,11 +718,9 @@ function buildResultDetailPanel(place, index) {
 
   const dateWrap = document.createElement("div");
   dateWrap.className = "trip-edit-fields";
-  const arrivalField = document.createElement("input");
-  arrivalField.type = "date";
-  const departureField = document.createElement("input");
-  departureField.type = "date";
-  dateWrap.append(arrivalField, departureField);
+  const { wrap: arrivalWrap, input: arrivalField } = createLabeledDateField("Ankunft");
+  const { wrap: departureWrap, input: departureField } = createLabeledDateField("Abreise");
+  dateWrap.append(arrivalWrap, departureWrap);
   panel.appendChild(dateWrap);
 
   const saveBtn = document.createElement("button");

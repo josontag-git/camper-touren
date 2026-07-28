@@ -142,6 +142,29 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 18 – Formular-Politur (Datum-Labels, Farb-Picker, Kategorie-Feld)
+
+- **Ankunft/Abreise zeigen jetzt ein festes Label statt eines leeren Felds.**
+  Native `type="date"`-Inputs unterstützen kein zuverlässiges
+  `placeholder`-Attribut (Safari ignoriert es komplett) – neue
+  `createLabeledDateField()` (`js/plan.js`) baut stattdessen ein
+  `<label>`-Wrapper mit echtem `<span>Ankunft/Abreise</span>` fest im Feld
+  (`.date-field` in `css/style.css`). Betrifft das manuelle Anlegen/
+  Bearbeiten-Formular und das "Ort speichern"-Panel bei der Google-/
+  park4night-Suche.
+- **"+ Hinzufügen"-Farb-Picker jetzt im gleichen Stil wie die
+  Bestandszeilen.** Die Farbauswahl beim Neuanlegen einer Kategorie/eines
+  Abschnitts war bisher ein unstyled natives `<input type="color">`
+  (kleines Browser-Standard-Swatch) statt des gestalteten
+  34×34px-Swatches (`.category-settings-color`), den bearbeitbare
+  Bestandszeilen schon hatten – jetzt in `js/categories.js` UND
+  `js/sections.js` konsistent.
+- **Kategorie-Feld im Bearbeiten-Formular war zu schmal.** Die CSS-Regel für
+  `.trip-edit-fields` hat bisher nur `input`-Elemente gestylt, das
+  Kategorie-`<select>` blieb dadurch mit Browser-Standardbreite (schmales
+  Picklist-Feld) statt wie die anderen Felder auf volle Breite gezogen zu
+  werden. Regel um `select` erweitert + `width: 100%` ergänzt.
+
 ## Stand: Milestone 17b – Bugfix: Abschnittszuordnung ging beim Speichern verloren
 
 - **Ursache (live gegen das echte Sheet nachgewiesen):** `onSectionDrop()`/

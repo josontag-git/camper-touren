@@ -182,6 +182,7 @@ export function renderSectionsSettings(container, tripId) {
   const newColor = document.createElement("input");
   newColor.type = "color";
   newColor.value = "#3a6fb0";
+  newColor.className = "category-settings-color";
 
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary";
