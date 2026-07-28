@@ -302,7 +302,13 @@ async function onSave(existing, fields, saveBtn) {
   const { currentTripId, places } = getState();
   saveBtn.disabled = true;
   saveBtn.textContent = "Speichert …";
+  // Erst die vorhandenen Felder übernehmen (photoRef/rating/userRatingCount/
+  // status/sectionId etc.), DANN mit den im Formular bearbeiteten Feldern
+  // überschreiben -- sonst würde jedes Speichern über das Bearbeiten-
+  // Formular Felder löschen, die das Formular selbst gar nicht kennt (z. B.
+  // den per Drag zugewiesenen Abschnitt).
   const record = {
+    ...existing,
     id: existing?.id || crypto.randomUUID(),
     tripId: currentTripId,
     order: existing?.order ?? places.length,
@@ -341,8 +347,40 @@ async function onDelete(place) {
   }
 }
 
+// Schreibt nur Orte, deren order/sectionId sich tatsächlich geändert hat
+// (statt blind den ganzen Urlaub neu zu schreiben), und lässt einen
+// einzelnen fehlgeschlagenen Request nicht den ganzen Rest blockieren --
+// beides behebt einen live nachgewiesenen Datenverlust: bei "alle Orte immer
+// neu schreiben" + "ein Fehler bricht die ganze Schleife ab" blieben nach
+// vielen sequenziellen Schreibvorgängen mehrere Orte mit identischem/altem
+// order-Wert stehen (per direktem GET/POST-Test gegen das echte Sheet
+// nachgewiesen). Weniger Requests pro Aktion + robuste Einzelverarbeitung
+// senken das Risiko deutlich.
+async function writeChangedPlaces(before, after, statusPrefix) {
+  const toWrite = after.filter((p) => {
+    const orig = before.get(p.id);
+    return !orig || orig.order !== p.order || orig.sectionId !== (p.sectionId || "");
+  });
+  const failed = [];
+  // Nacheinander statt parallel: Apps Script hat kein Locking auf
+  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
+  // dasselbe Sheet können sich gegenseitig überschreiben.
+  for (const p of toWrite) {
+    try {
+      await updatePlace(p);
+    } catch (err) {
+      failed.push(p);
+      console.error(err);
+    }
+  }
+  if (failed.length) {
+    onStatus(`${statusPrefix}: ${failed.length} von ${toWrite.length} Änderungen konnten nicht gespeichert werden.`);
+  }
+}
+
 async function onReorder(sourceId, targetId) {
   const ordered = sortedPlaces();
+  const before = new Map(ordered.map((p) => [p.id, { order: p.order, sectionId: p.sectionId || "" }]));
   const fromIndex = ordered.findIndex((p) => p.id === sourceId);
   const toIndex = ordered.findIndex((p) => p.id === targetId);
   if (fromIndex === -1 || toIndex === -1) return;
@@ -352,15 +390,7 @@ async function onReorder(sourceId, targetId) {
   const reindexed = ordered.map((p, i) => ({ ...p, order: i }));
   setPlaces(reindexed);
   render();
-  // Nacheinander statt parallel: Apps Script hat kein Locking auf
-  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
-  // dasselbe Sheet können sich gegenseitig überschreiben.
-  try {
-    for (const p of reindexed) await updatePlace(p);
-  } catch (err) {
-    onStatus(`Fehler beim Sortieren: ${friendlyError(err)}`);
-    console.error(err);
-  }
+  await writeChangedPlaces(before, reindexed, "Fehler beim Sortieren");
 }
 
 // Ziel ist eine Abschnitts-Überschrift ("section:"+id) -> Ort bekommt diese
@@ -369,6 +399,7 @@ async function onReorder(sourceId, targetId) {
 // eingefügt (wie onReorder(), nur zusätzlich mit Abschnitts-Wechsel).
 async function onSectionDrop(sourceId, targetId) {
   const ordered = sortedPlaces();
+  const before = new Map(ordered.map((p) => [p.id, { order: p.order, sectionId: p.sectionId || "" }]));
   const fromIndex = ordered.findIndex((p) => p.id === sourceId);
   if (fromIndex === -1) return;
   const [moved] = ordered.splice(fromIndex, 1);
@@ -386,15 +417,7 @@ async function onSectionDrop(sourceId, targetId) {
   const reindexed = ordered.map((p, i) => ({ ...p, order: i }));
   setPlaces(reindexed);
   render();
-  // Nacheinander statt parallel: Apps Script hat kein Locking auf
-  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
-  // dasselbe Sheet können sich gegenseitig überschreiben.
-  try {
-    for (const p of reindexed) await updatePlace(p);
-  } catch (err) {
-    onStatus(`Fehler beim Verschieben: ${friendlyError(err)}`);
-    console.error(err);
-  }
+  await writeChangedPlaces(before, reindexed, "Fehler beim Verschieben");
 }
 
 let distanceAttempted = false;

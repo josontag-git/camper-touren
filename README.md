@@ -142,6 +142,33 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 17b – Bugfix: Abschnittszuordnung ging beim Speichern verloren
+
+- **Ursache (live gegen das echte Sheet nachgewiesen):** `onSectionDrop()`/
+  `onReorder()` (`js/plan.js`) haben bei JEDER Aktion ALLE Orte des Urlaubs
+  per `updatePlace()` neu geschrieben, nacheinander in einer Schleife. Ein
+  einzelner fehlgeschlagener Request mittendrin hat die GESAMTE restliche
+  Schleife abgebrochen (`try/catch` um die ganze Schleife statt um jeden
+  einzelnen Request) – alle danach folgenden Orte behielten dadurch
+  dauerhaft ihren alten `order`/`sectionId`-Wert. Nachgewiesen per direktem
+  GET/POST-Test gegen das produktive Sheet: mehrere Orte desselben Urlaubs
+  hatten identische `order`-Werte, und alle 29 Orte hatten trotz 4 echter
+  Abschnitte durchgängig `sectionId: ""`.
+- **Fix:** `writeChangedPlaces()` (neu, `js/plan.js`) schreibt nur noch Orte,
+  deren `order`/`sectionId` sich tatsächlich geändert hat (statt immer den
+  ganzen Urlaub), UND verarbeitet jeden Request einzeln mit eigenem
+  `try/catch` – ein fehlgeschlagener Request blockiert die übrigen nicht
+  mehr. Gleiche Behandlung für `onReorderSections()` (`js/sections.js`).
+  Reduziert nebenbei auch die Anzahl der Requests pro Aktion deutlich (z. B.
+  nur 1 statt N beim Verschieben eines bereits letzten Orts in einen leeren
+  Abschnitt).
+- **Zusätzlich gefixt:** `onSave()` (manuelles Bearbeiten-Formular in Plan)
+  baute den Ort-Datensatz bisher komplett neu auf und verlor dabei Felder,
+  die das Formular selbst nicht kennt (`sectionId`, aber auch `photoRef`,
+  `rating`, `userRatingCount`, `status`). Jetzt werden erst die
+  vorhandenen Felder übernommen und nur die im Formular bearbeiteten
+  überschrieben.
+
 ## Stand: Milestone 17 – Abschnitte für Plan + Route
 
 - **Neue, benutzerdefinierte Abschnitte** ("Etappe 1", "Küste" o. ä.) zum

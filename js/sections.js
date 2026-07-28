@@ -75,6 +75,7 @@ export async function removeSection(id) {
 
 async function onReorderSections(tripId, sourceId, targetId) {
   const ordered = getSectionsForTrip(tripId);
+  const before = new Map(ordered.map((s) => [s.id, s.order]));
   const fromIndex = ordered.findIndex((s) => s.id === sourceId);
   const toIndex = ordered.findIndex((s) => s.id === targetId);
   if (fromIndex === -1 || toIndex === -1) return;
@@ -84,10 +85,18 @@ async function onReorderSections(tripId, sourceId, targetId) {
   const reindexed = ordered.map((s, i) => ({ ...s, order: i }));
   const others = getState().sections.filter((s) => s.tripId !== tripId);
   setSections([...others, ...reindexed]);
-  // Nacheinander statt parallel: Apps Script hat kein Locking auf
-  // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
-  // dasselbe Sheet können sich gegenseitig überschreiben.
-  for (const s of reindexed) await updateSection(s);
+
+  // Nur tatsächlich verschobene Abschnitte schreiben, UND ein fehlgeschlagener
+  // Request darf den Rest nicht blockieren -- siehe writeChangedPlaces() in
+  // plan.js für den (live nachgewiesenen) Hintergrund dieser beiden Punkte.
+  const toWrite = reindexed.filter((s) => before.get(s.id) !== s.order);
+  for (const s of toWrite) {
+    try {
+      await updateSection(s);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 }
 
 function renderSectionsSettingsRow(section) {
