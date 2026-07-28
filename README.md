@@ -142,6 +142,25 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 19 – Datum-Ansicht zeigt alle Urlaubstage
+
+- **Plan und Route zeigen in der Datum-Ansicht jetzt ALLE Tage des Urlaubs**
+  (bei Urlauben mit festem Start-/Enddatum), nicht mehr nur die Tage, an
+  denen tatsächlich ein Ort eingeplant ist. Neue `allTripDates(trip)`
+  (bewusst dupliziert in `js/plan.js` + `js/route.js`, gleiches Muster wie
+  `groupedByDate()`) erzeugt lückenlos jeden Tag von `startDate` bis
+  `endDate`; `groupedByDate()` vereinigt diese Tage mit den Tagen, an denen
+  tatsächlich Orte liegen (ein Ort mit Datum außerhalb des offiziellen
+  Zeitraums geht dadurch nicht verloren, sondern ergänzt die Liste). Leere
+  Tage erscheinen als Überschrift ohne Orte darunter.
+- **"Heute"-Markierung bleibt dabei erhalten, auch wenn heute leer ist.**
+  Bisher wurde "Heute" nur als eigener, synthetischer Zeitachsen-Eintrag
+  eingefügt, wenn der Tag noch keine echte Gruppe war – jetzt, wo praktisch
+  immer alle Tage als echte Gruppen existieren, markiert `withTodayMarker()`
+  stattdessen die schon vorhandene echte Tages-Gruppe (`isTodayReal`, Label
+  ergänzt um "· Heute", gleiche Akzent-Optik wie der bisherige Marker) statt
+  einen zweiten, doppelten Eintrag für denselben Tag einzufügen.
+
 ## Stand: Milestone 18 – Formular-Politur (Datum-Labels, Farb-Picker, Kategorie-Feld)
 
 - **Ankunft/Abreise zeigen jetzt ein festes Label statt eines leeren Felds.**

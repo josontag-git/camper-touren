@@ -100,11 +100,35 @@ function groupedBySection() {
   }));
 }
 
+// Liefert alle Tage von trip.startDate bis trip.endDate (inklusive) als
+// "yyyy-MM-dd"-Strings -- lokal gerechnet (nicht über Date.toISOString(),
+// das würde bei der Tagesinkrementierung je nach Zeitzone zu Verschiebungen
+// führen). null, falls der Urlaub keinen festen Zeitraum hat.
+function allTripDates(trip) {
+  if (!trip?.startDate || !trip?.endDate) return null;
+  const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const end = parse(trip.endDate);
+  const dates = [];
+  for (let cur = parse(trip.startDate); cur <= end; cur.setDate(cur.getDate() + 1)) {
+    dates.push(fmt(cur));
+  }
+  return dates;
+}
+
+// Zeigt bei Urlauben mit festem Zeitraum ALLE Tage des Urlaubs an (auch ohne
+// eingeplante Orte), nicht nur die Tage, an denen tatsächlich ein Ort
+// hinterlegt ist -- macht die Zeitachse als vollständigen Reiseplan lesbar.
+// Orte mit einem Datum außerhalb des Urlaubszeitraums (Sonderfall) fallen
+// nicht unter den Tisch, sondern ergänzen die Liste zusätzlich.
 function groupedByDate() {
+  const { currentTrip } = getState();
   const all = plannedPlaces();
   const withDate = all.filter((p) => p.arrivalDate);
   const withoutDate = all.filter((p) => !p.arrivalDate);
-  const dates = [...new Set(withDate.map((p) => p.arrivalDate))].sort();
+  const tripDates = allTripDates(currentTrip);
+  const placeDates = withDate.map((p) => p.arrivalDate);
+  const dates = [...new Set([...(tripDates || []), ...placeDates])].sort();
   const groups = dates.map((date) => ({
     id: date,
     label: new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }),
@@ -118,13 +142,19 @@ function groupedByDate() {
 // Fügt einen "Heute"-Eintrag an der chronologisch richtigen Stelle zwischen
 // den Datums-Gruppen ein (vor "Ohne Datum", falls vorhanden) -- rein
 // visueller Fortschritts-Marker auf der Zeitachse, keine echte Gruppe mit
-// Orten. Übersprungen, falls "heute" bereits eine echte Datums-Gruppe ist
-// (sonst zwei Überschriften für denselben Tag).
+// Orten. Ist "heute" bereits eine echte Datums-Gruppe (z. B. weil jetzt alle
+// Urlaubstage angezeigt werden), wird stattdessen NUR diese Gruppe markiert
+// (isTodayReal), statt eine zweite, doppelte Überschrift einzufügen.
 function withTodayMarker(groups) {
   const today = new Date().toISOString().slice(0, 10);
   const undated = groups.find((g) => g.id === "__none__");
   const dated = groups.filter((g) => g.id !== "__none__");
-  if (dated.some((g) => g.id === today)) return groups;
+
+  const existingToday = dated.find((g) => g.id === today);
+  if (existingToday) {
+    existingToday.isTodayReal = true;
+    return groups;
+  }
 
   const marker = { id: "__today__", label: "Heute", places: [], isToday: true };
   const insertAt = dated.findIndex((g) => g.id > today);
@@ -518,11 +548,13 @@ function renderInterestedList() {
   });
 }
 
-// sectionMode: Abschnitts-Überschriften bleiben auch bei 0 Orten sichtbar
-// (sonst könnte man nie einen Ort in einen frisch angelegten, leeren
-// Abschnitt ziehen) und bekommen dataset.id/data-section-target, damit sie
-// in createViewRow()'s Abschnitt-Drag als Drop-Ziel erkannt werden.
-function renderGroups(groups, list, sectionMode = false) {
+// allowEmpty: Überschriften bleiben auch bei 0 Orten sichtbar (Datum-Modus
+// mit festem Urlaubszeitraum: alle Tage sollen auftauchen, nicht nur die mit
+// Orten; Abschnitt-Modus: sonst könnte man nie einen Ort in einen frisch
+// angelegten, leeren Abschnitt ziehen). sectionMode: Überschriften bekommen
+// zusätzlich dataset.id/data-section-target, damit sie in createViewRow()'s
+// Abschnitt-Drag als Drop-Ziel erkannt werden.
+function renderGroups(groups, list, { allowEmpty = false, sectionMode = false } = {}) {
   let visibleCount = 0;
   groups.forEach((group) => {
     if (group.isToday) {
@@ -533,13 +565,15 @@ function renderGroups(groups, list, sectionMode = false) {
       return;
     }
     const visiblePlaces = group.places.filter((p) => isCategoryVisible(p.category || ""));
-    if (visiblePlaces.length === 0 && !sectionMode) return;
+    if (visiblePlaces.length === 0 && !allowEmpty) return;
     visibleCount += visiblePlaces.length;
 
     const heading = document.createElement("li");
-    heading.className = "place-group-heading";
+    heading.className = group.isTodayReal ? "place-group-heading place-group-heading--today" : "place-group-heading";
     heading.style.setProperty("--category-color", group.color);
-    heading.textContent = `${group.label} (${visiblePlaces.length})`;
+    heading.textContent = group.isTodayReal
+      ? `${group.label} (${visiblePlaces.length}) · Heute`
+      : `${group.label} (${visiblePlaces.length})`;
     if (sectionMode) {
       heading.dataset.id = `section:${group.id}`;
       heading.dataset.sectionTarget = "true";
@@ -1167,11 +1201,11 @@ function render() {
   if (viewMode === "category") {
     visibleCount = renderGroups(groupedByCategory(), list);
   } else if (viewMode === "date") {
-    visibleCount = renderGroups(showTimeline ? withTodayMarker(groupedByDate()) : groupedByDate(), list);
+    visibleCount = renderGroups(showTimeline ? withTodayMarker(groupedByDate()) : groupedByDate(), list, { allowEmpty: true });
   } else if (viewMode === "distance") {
     visibleCount = renderDistanceMode(list);
   } else if (viewMode === "section") {
-    visibleCount = renderGroups(groupedBySection(), list, true);
+    visibleCount = renderGroups(groupedBySection(), list, { allowEmpty: true, sectionMode: true });
   }
 
   list.classList.toggle("trips-list--timeline", showTimeline);

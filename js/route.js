@@ -208,12 +208,30 @@ function renderList(places) {
   places.forEach((place, i) => list.appendChild(buildRouteRow(place, i + 1)));
 }
 
-// Gruppiert nach arrivalDate (gleiches Muster wie plan.js) – nur für die
-// Zeitachsen-Ansicht, wenn der Urlaub einen festen Zeitraum hat.
-function groupedByDate(places) {
+// Liefert alle Tage von trip.startDate bis trip.endDate (inklusive) als
+// "yyyy-MM-dd"-Strings -- lokal gerechnet, gleiche Funktion wie in plan.js
+// (bewusst dupliziert, siehe dortiger Kommentar). null ohne festen Zeitraum.
+function allTripDates(trip) {
+  if (!trip?.startDate || !trip?.endDate) return null;
+  const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const end = parse(trip.endDate);
+  const dates = [];
+  for (let cur = parse(trip.startDate); cur <= end; cur.setDate(cur.getDate() + 1)) {
+    dates.push(fmt(cur));
+  }
+  return dates;
+}
+
+// Gruppiert nach arrivalDate (gleiches Muster wie plan.js). Hat der Urlaub
+// einen festen Zeitraum, werden ALLE Tage angezeigt (auch ohne Orte), nicht
+// nur die mit tatsächlich eingeplanten Orten.
+function groupedByDate(places, trip) {
   const withDate = places.filter((p) => p.arrivalDate);
   const withoutDate = places.filter((p) => !p.arrivalDate);
-  const dates = [...new Set(withDate.map((p) => p.arrivalDate))].sort();
+  const tripDates = allTripDates(trip);
+  const placeDates = withDate.map((p) => p.arrivalDate);
+  const dates = [...new Set([...(tripDates || []), ...placeDates])].sort();
   const groups = dates.map((date) => ({
     id: date,
     label: new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }),
@@ -227,12 +245,19 @@ function groupedByDate(places) {
 // Fügt einen "Heute"-Eintrag an der chronologisch richtigen Stelle zwischen
 // den Datums-Gruppen ein (vor "Ohne Datum", falls vorhanden) -- rein
 // visueller Fortschritts-Marker auf der Zeitachse, keine echte Gruppe mit
-// Orten. Übersprungen, falls "heute" bereits eine echte Datums-Gruppe ist.
+// Orten. Ist "heute" bereits eine echte Datums-Gruppe (z. B. weil jetzt alle
+// Urlaubstage angezeigt werden), wird stattdessen NUR diese Gruppe markiert
+// (isTodayReal), statt eine zweite, doppelte Überschrift einzufügen.
 function withTodayMarker(groups) {
   const today = new Date().toISOString().slice(0, 10);
   const undated = groups.find((g) => g.id === "__none__");
   const dated = groups.filter((g) => g.id !== "__none__");
-  if (dated.some((g) => g.id === today)) return groups;
+
+  const existingToday = dated.find((g) => g.id === today);
+  if (existingToday) {
+    existingToday.isTodayReal = true;
+    return groups;
+  }
 
   const marker = { id: "__today__", label: "Heute", places: [], isToday: true };
   const insertAt = dated.findIndex((g) => g.id > today);
@@ -244,21 +269,23 @@ function withTodayMarker(groups) {
 // Zeitachsen-Ansicht: Reihenfolge/Gruppierung nach Datum, aber die Marker-
 // Nummer bleibt die Position im ORIGINAL order-sortierten Array, damit sie
 // weiterhin exakt zum entsprechenden Kartenmarker aus renderMap() passt.
-function renderTimelineList(allOrderSorted) {
+function renderTimelineList(allOrderSorted, trip) {
   const list = document.getElementById("route-list");
   list.classList.add("trips-list--timeline");
   list.innerHTML = "";
 
   const markerNumberById = new Map(allOrderSorted.map((p, i) => [p.id, i + 1]));
-  withTodayMarker(groupedByDate(allOrderSorted)).forEach((group) => {
-    const heading = document.createElement("li");
-    heading.textContent = group.label;
+  withTodayMarker(groupedByDate(allOrderSorted, trip)).forEach((group) => {
     if (group.isToday) {
+      const heading = document.createElement("li");
       heading.className = "place-group-heading place-group-heading--today";
+      heading.textContent = group.label;
       list.appendChild(heading);
       return;
     }
-    heading.className = "place-group-heading";
+    const heading = document.createElement("li");
+    heading.className = group.isTodayReal ? "place-group-heading place-group-heading--today" : "place-group-heading";
+    heading.textContent = group.isTodayReal ? `${group.label} · Heute` : group.label;
     heading.style.setProperty("--category-color", group.color);
     list.appendChild(heading);
 
@@ -345,7 +372,7 @@ function render() {
   const all = sortedPlaces();
   renderMap(all);
   if (routeViewMode === "date") {
-    renderTimelineList(all);
+    renderTimelineList(all, currentTrip);
   } else if (routeViewMode === "section") {
     renderSectionList(all, currentTrip.id);
   } else {
