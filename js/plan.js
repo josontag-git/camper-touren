@@ -100,20 +100,25 @@ function groupedBySection() {
   }));
 }
 
-// Liefert alle Tage von trip.startDate bis trip.endDate (inklusive) als
-// "yyyy-MM-dd"-Strings -- lokal gerechnet (nicht über Date.toISOString(),
-// das würde bei der Tagesinkrementierung je nach Zeitzone zu Verschiebungen
-// führen). null, falls der Urlaub keinen festen Zeitraum hat.
-function allTripDates(trip) {
-  if (!trip?.startDate || !trip?.endDate) return null;
+// Liefert alle Tage von start bis end (inklusive) als "yyyy-MM-dd"-Strings --
+// lokal gerechnet (nicht über Date.toISOString(), das würde bei der
+// Tagesinkrementierung je nach Zeitzone zu Verschiebungen führen).
+function dateRange(startStr, endStr) {
   const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
   const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const end = parse(trip.endDate);
+  const end = parse(endStr);
   const dates = [];
-  for (let cur = parse(trip.startDate); cur <= end; cur.setDate(cur.getDate() + 1)) {
+  for (let cur = parse(startStr); cur <= end; cur.setDate(cur.getDate() + 1)) {
     dates.push(fmt(cur));
   }
   return dates;
+}
+
+// Alle Tage des Urlaubs (trip.startDate bis trip.endDate) -- null, falls der
+// Urlaub keinen festen Zeitraum hat.
+function allTripDates(trip) {
+  if (!trip?.startDate || !trip?.endDate) return null;
+  return dateRange(trip.startDate, trip.endDate);
 }
 
 // Zeigt bei Urlauben mit festem Zeitraum ALLE Tage des Urlaubs an (auch ohne
@@ -121,19 +126,37 @@ function allTripDates(trip) {
 // hinterlegt ist -- macht die Zeitachse als vollständigen Reiseplan lesbar.
 // Orte mit einem Datum außerhalb des Urlaubszeitraums (Sonderfall) fallen
 // nicht unter den Tisch, sondern ergänzen die Liste zusätzlich.
+//
+// Orte mit Ankunft UND Abreise über mehrere Tage erscheinen an JEDEM Tag
+// dieser Spanne, nicht nur am Ankunftstag -- am Ankunftstag als normaler
+// (voll bedienbarer) Eintrag, an den Folgetagen als schlanker, nicht
+// interaktiver "__continuation"-Eintrag (kein Drag, kein Bearbeiten/Löschen
+// dort -- das bleibt eindeutig am Ankunftstag verankert).
 function groupedByDate() {
   const { currentTrip } = getState();
   const all = plannedPlaces();
   const withDate = all.filter((p) => p.arrivalDate);
   const withoutDate = all.filter((p) => !p.arrivalDate);
   const tripDates = allTripDates(currentTrip);
-  const placeDates = withDate.map((p) => p.arrivalDate);
-  const dates = [...new Set([...(tripDates || []), ...placeDates])].sort();
+
+  const occurrencesByDate = new Map();
+  withDate.forEach((p) => {
+    const span = p.departureDate && p.departureDate > p.arrivalDate
+      ? dateRange(p.arrivalDate, p.departureDate)
+      : [p.arrivalDate];
+    span.forEach((date, i) => {
+      const entry = i === 0 ? p : { ...p, __continuation: true, __dayIndex: i + 1, __totalDays: span.length };
+      if (!occurrencesByDate.has(date)) occurrencesByDate.set(date, []);
+      occurrencesByDate.get(date).push(entry);
+    });
+  });
+
+  const dates = [...new Set([...(tripDates || []), ...occurrencesByDate.keys()])].sort();
   const groups = dates.map((date) => ({
     id: date,
     label: new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }),
     color: "#6b7278",
-    places: withDate.filter((p) => p.arrivalDate === date),
+    places: occurrencesByDate.get(date) || [],
   }));
   if (withoutDate.length) groups.push({ id: "__none__", label: "Ohne Datum", color: "#9199ab", places: withoutDate });
   return groups;
@@ -259,6 +282,40 @@ function createViewRow(place, metaOverride) {
   } else {
     li.append(...thumbPart, info, editBtn, delBtn);
   }
+  return li;
+}
+
+// Schlanke Zeile für einen Ort an einem FOLGETAG seines mehrtägigen
+// Aufenthalts (Tag 2+ einer Ankunft/Abreise-Spanne, siehe groupedByDate()).
+// Bewusst nicht interaktiv (kein Drag-Griff, kein Bearbeiten/Löschen) --
+// der eigentliche Ort-Datensatz bleibt eindeutig am Ankunftstag verankert,
+// ein Doppel-Eintrag würde sonst unklare Bearbeitungs-/Verschiebe-Semantik
+// erzeugen ("verschiebt das nur diesen Tag oder den ganzen Aufenthalt?").
+function createContinuationRow(place) {
+  const li = document.createElement("li");
+  li.className = "trip-item place-item-continuation";
+  li.style.setProperty("--category-color", categoryInfo(place.category).color);
+
+  const info = document.createElement("div");
+  info.className = "trip-info";
+  if (place.placeId) {
+    info.classList.add("trip-info-clickable");
+    info.setAttribute("role", "button");
+    info.setAttribute("tabindex", "0");
+    info.addEventListener("click", () => openPlaceDetailModal(place));
+    info.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlaceDetailModal(place); }
+    });
+  }
+  const title = document.createElement("div");
+  title.className = "trip-title";
+  title.textContent = `↳ ${place.name || "(ohne Namen)"}`;
+  const meta = document.createElement("div");
+  meta.className = "trip-meta";
+  meta.textContent = `Tag ${place.__dayIndex} von ${place.__totalDays}`;
+  info.append(title, meta);
+
+  li.append(info);
   return li;
 }
 
@@ -681,6 +738,7 @@ function renderGroups(groups, list, { allowEmpty = false, sectionMode = false, d
     list.appendChild(heading);
 
     visiblePlaces.forEach((place) => {
+      if (place.__continuation) { list.appendChild(createContinuationRow(place)); return; }
       list.appendChild(place.id === editingPlaceId ? createFormRow(place) : createViewRow(place));
     });
   });

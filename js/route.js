@@ -201,6 +201,41 @@ function buildRouteRow(place, markerNumber) {
   return li;
 }
 
+// Schlanke Zeile für einen Ort an einem FOLGETAG seines mehrtägigen
+// Aufenthalts -- siehe createContinuationRow() in plan.js für die
+// Begründung (bewusst nicht interaktiv über "Details" hinaus, kein Maps-
+// Link doppelt, kein Foto).
+function buildRouteContinuationRow(place, markerNumber) {
+  const li = document.createElement("li");
+  li.className = "trip-item place-item-continuation";
+  li.style.setProperty("--category-color", categoryInfo(place.category).color);
+
+  const dot = document.createElement("span");
+  dot.className = "route-category-dot";
+
+  const info = document.createElement("div");
+  info.className = "trip-info";
+  if (place.placeId) {
+    info.classList.add("trip-info-clickable");
+    info.setAttribute("role", "button");
+    info.setAttribute("tabindex", "0");
+    info.addEventListener("click", () => openPlaceDetailModal(place));
+    info.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlaceDetailModal(place); }
+    });
+  }
+  const title = document.createElement("div");
+  title.className = "trip-title";
+  title.textContent = `↳ ${markerNumber}. ${place.name || "(ohne Namen)"}`;
+  const meta = document.createElement("div");
+  meta.className = "trip-meta";
+  meta.textContent = `Tag ${place.__dayIndex} von ${place.__totalDays}`;
+  info.append(title, meta);
+
+  li.append(dot, info);
+  return li;
+}
+
 function renderList(places) {
   const list = document.getElementById("route-list");
   list.classList.remove("trips-list--timeline");
@@ -208,35 +243,54 @@ function renderList(places) {
   places.forEach((place, i) => list.appendChild(buildRouteRow(place, i + 1)));
 }
 
-// Liefert alle Tage von trip.startDate bis trip.endDate (inklusive) als
-// "yyyy-MM-dd"-Strings -- lokal gerechnet, gleiche Funktion wie in plan.js
-// (bewusst dupliziert, siehe dortiger Kommentar). null ohne festen Zeitraum.
-function allTripDates(trip) {
-  if (!trip?.startDate || !trip?.endDate) return null;
+// Liefert alle Tage von start bis end (inklusive) als "yyyy-MM-dd"-Strings --
+// lokal gerechnet, gleiche Funktion wie in plan.js (bewusst dupliziert,
+// siehe dortiger Kommentar).
+function dateRange(startStr, endStr) {
   const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
   const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const end = parse(trip.endDate);
+  const end = parse(endStr);
   const dates = [];
-  for (let cur = parse(trip.startDate); cur <= end; cur.setDate(cur.getDate() + 1)) {
+  for (let cur = parse(startStr); cur <= end; cur.setDate(cur.getDate() + 1)) {
     dates.push(fmt(cur));
   }
   return dates;
 }
 
+// Alle Tage des Urlaubs -- null ohne festen Zeitraum.
+function allTripDates(trip) {
+  if (!trip?.startDate || !trip?.endDate) return null;
+  return dateRange(trip.startDate, trip.endDate);
+}
+
 // Gruppiert nach arrivalDate (gleiches Muster wie plan.js). Hat der Urlaub
 // einen festen Zeitraum, werden ALLE Tage angezeigt (auch ohne Orte), nicht
-// nur die mit tatsächlich eingeplanten Orten.
+// nur die mit tatsächlich eingeplanten Orten. Orte mit Ankunft UND Abreise
+// über mehrere Tage erscheinen an JEDEM Tag dieser Spanne (Ankunftstag als
+// normale Zeile, Folgetage als "__continuation"-Eintrag, siehe plan.js).
 function groupedByDate(places, trip) {
   const withDate = places.filter((p) => p.arrivalDate);
   const withoutDate = places.filter((p) => !p.arrivalDate);
   const tripDates = allTripDates(trip);
-  const placeDates = withDate.map((p) => p.arrivalDate);
-  const dates = [...new Set([...(tripDates || []), ...placeDates])].sort();
+
+  const occurrencesByDate = new Map();
+  withDate.forEach((p) => {
+    const span = p.departureDate && p.departureDate > p.arrivalDate
+      ? dateRange(p.arrivalDate, p.departureDate)
+      : [p.arrivalDate];
+    span.forEach((date, i) => {
+      const entry = i === 0 ? p : { ...p, __continuation: true, __dayIndex: i + 1, __totalDays: span.length };
+      if (!occurrencesByDate.has(date)) occurrencesByDate.set(date, []);
+      occurrencesByDate.get(date).push(entry);
+    });
+  });
+
+  const dates = [...new Set([...(tripDates || []), ...occurrencesByDate.keys()])].sort();
   const groups = dates.map((date) => ({
     id: date,
     label: new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }),
     color: "#6b7278",
-    places: withDate.filter((p) => p.arrivalDate === date),
+    places: occurrencesByDate.get(date) || [],
   }));
   if (withoutDate.length) groups.push({ id: "__none__", label: "Ohne Datum", color: "#9199ab", places: withoutDate });
   return groups;
@@ -290,7 +344,12 @@ function renderTimelineList(allOrderSorted, trip) {
     list.appendChild(heading);
 
     group.places.forEach((place) => {
-      list.appendChild(buildRouteRow(place, markerNumberById.get(place.id)));
+      const markerNumber = markerNumberById.get(place.id);
+      list.appendChild(
+        place.__continuation
+          ? buildRouteContinuationRow(place, markerNumber)
+          : buildRouteRow(place, markerNumber)
+      );
     });
   });
 }

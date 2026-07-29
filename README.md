@@ -142,6 +142,26 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 23 – Mehrtägige Orte erscheinen an jedem Tag ihrer Spanne
+
+- **Plan und Route, Datum-Ansicht:** Ein Ort mit Ankunfts- UND Abreisedatum
+  über mehrere Tage (z. B. ein 4 Nächte gebuchter Campingplatz) erschien
+  bisher nur am Ankunftstag auf der Zeitachse. Jetzt taucht er an JEDEM Tag
+  seiner Spanne auf: am Ankunftstag als normale, voll bedienbare Zeile, an
+  den Folgetagen als schlanke "↳ Tag N von M"-Zeile (`.place-item-
+  continuation`, gedimmt, gestrichelter Rand statt vollem Karten-Schatten).
+  `groupedByDate()` (`js/plan.js` + `js/route.js`) erzeugt dafür einen
+  `dateRange(start, end)`-Helper (Verallgemeinerung des bisherigen
+  `allTripDates()`) und ordnet jeden Tag der Spanne einer Gruppe zu.
+- **Folgetage-Zeilen sind bewusst nicht interaktiv** (kein Drag-Griff, kein
+  Bearbeiten/Löschen, in Route kein zweiter "Maps ↗"-Link) – der Ort bleibt
+  eindeutig am Ankunftstag verankert, ein zweiter „echter" Eintrag hätte
+  unklare Verschiebe-/Bearbeiten-Semantik ("verschiebt das nur diesen Tag
+  oder den ganzen Aufenthalt?"). "Details" bleibt an jedem Tag antippbar.
+  Da Folgetage-Zeilen keine `.place-item`-Klasse tragen, sind sie automatisch
+  auch kein gültiges Drop-Ziel beim Datum-Drag (Milestone 21) – kein
+  Sonderfall-Code nötig, ergibt sich allein aus dem CSS-Klassen-Ausschluss.
+
 ## Stand: Milestone 22 – "Abschnitt in Google Maps"-Link, Auto-Scroll beim Ziehen
 
 - **Route, Abschnitt-Ansicht:** jede Abschnitts-Überschrift bekommt einen
