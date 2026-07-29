@@ -86,16 +86,24 @@ async function onReorderSections(tripId, sourceId, targetId) {
   const others = getState().sections.filter((s) => s.tripId !== tripId);
   setSections([...others, ...reindexed]);
 
-  // Nur tatsächlich verschobene Abschnitte schreiben, UND ein fehlgeschlagener
-  // Request darf den Rest nicht blockieren -- siehe writeChangedPlaces() in
-  // plan.js für den (live nachgewiesenen) Hintergrund dieser beiden Punkte.
+  // Nur tatsächlich verschobene Abschnitte schreiben, ein fehlgeschlagener
+  // Request darf den Rest nicht blockieren, zweiter Versuch nach kurzer
+  // Pause + kleiner Abstand zwischen allen Requests -- siehe
+  // writeChangedPlaces() in plan.js für den (live nachgewiesenen)
+  // Hintergrund dieser Punkte.
   const toWrite = reindexed.filter((s) => before.get(s.id) !== s.order);
   for (const s of toWrite) {
     try {
       await updateSection(s);
     } catch (err) {
-      console.error(err);
+      try {
+        await new Promise((r) => setTimeout(r, 400));
+        await updateSection(s);
+      } catch (err2) {
+        console.error(err2);
+      }
     }
+    await new Promise((r) => setTimeout(r, 150));
   }
 }
 

@@ -142,6 +142,23 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 19b – Weiterer Rest-Datenverlust bei Orte-Schreibvorgängen behoben
+
+- **Trotz Milestone 17b ging live noch vereinzelt eine Abschnitts-/order-
+  Zuordnung verloren** (nachgewiesen: nach mehreren erfolgreichen Drag-
+  Aktionen blieb ein einzelner Ort mit dupliziertem/altem `order`-Wert
+  zurück, andere `sectionId`-Zuordnungen waren aber korrekt persistiert –
+  also kein grundsätzliches Problem mehr, sondern ein seltener Einzel-
+  Request-Verlust). Ursache vermutlich: Apps Script verarbeitet bei vielen
+  schnell aufeinanderfolgenden Requests einzelne davon ungewöhnlich langsam
+  (live beobachtet: ein einzelner Test-Request brauchte über 2 Minuten) oder
+  verwirft sie.
+- **Fix:** `writeChangedPlaces()` (`js/plan.js`) und `onReorderSections()`
+  (`js/sections.js`) versuchen einen fehlgeschlagenen Request jetzt einmal
+  erneut (kurze Pause davor) und lassen zwischen allen Requests eine kleine
+  Pause (150 ms), damit Apps Script jeden Schreibvorgang sicher abschließen
+  kann, bevor der nächste startet.
+
 ## Stand: Milestone 19 – Datum-Ansicht zeigt alle Urlaubstage
 
 - **Plan und Route zeigen in der Datum-Ansicht jetzt ALLE Tage des Urlaubs**

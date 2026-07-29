@@ -398,6 +398,8 @@ async function onDelete(place) {
 // order-Wert stehen (per direktem GET/POST-Test gegen das echte Sheet
 // nachgewiesen). Weniger Requests pro Aktion + robuste Einzelverarbeitung
 // senken das Risiko deutlich.
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function writeChangedPlaces(before, after, statusPrefix) {
   const toWrite = after.filter((p) => {
     const orig = before.get(p.id);
@@ -406,14 +408,27 @@ async function writeChangedPlaces(before, after, statusPrefix) {
   const failed = [];
   // Nacheinander statt parallel: Apps Script hat kein Locking auf
   // getLastRow()/setValues() in upsertRow(), gleichzeitige Requests auf
-  // dasselbe Sheet können sich gegenseitig überschreiben.
+  // dasselbe Sheet können sich gegenseitig überschreiben. Zusätzlich:
+  // ein zweiter Versuch nach kurzer Pause bei einem fehlgeschlagenen
+  // Request, UND eine kleine Pause zwischen allen Requests -- live
+  // beobachtet, dass Apps Script bei vielen schnell aufeinanderfolgenden
+  // Requests einzelne davon ungewöhnlich langsam verarbeitet oder verliert
+  // (ein einzelner Test-Request brauchte über 2 Minuten). Behebt einen Rest
+  // an Datenverlust, der auch nach der ersten Fix-Runde noch live
+  // nachgewiesen wurde (einzelner Ort ohne Abschnitts-Zuordnung übrig).
   for (const p of toWrite) {
     try {
       await updatePlace(p);
     } catch (err) {
-      failed.push(p);
-      console.error(err);
+      try {
+        await wait(400);
+        await updatePlace(p);
+      } catch (err2) {
+        failed.push(p);
+        console.error(err2);
+      }
     }
+    await wait(150);
   }
   if (failed.length) {
     onStatus(`${statusPrefix}: ${failed.length} von ${toWrite.length} Änderungen konnten nicht gespeichert werden.`);
