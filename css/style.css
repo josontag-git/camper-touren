@@ -636,6 +636,24 @@ html, body {
   letter-spacing: 0.03em;
 }
 
+/* Route, Abschnitt-Ansicht: "Abschnitt in Google Maps"-Link rechts in der
+   Überschriftenzeile -- kompakter als ein .btn, damit die ohnehin schon
+   dichte Überschriftenzeile nicht überladen wirkt. */
+.place-group-heading-link {
+  margin-left: auto;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.place-group-heading-link:hover {
+  text-decoration: underline;
+}
+
 .place-group-heading::before {
   content: "";
   width: 8px;

@@ -142,6 +142,29 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 22 – "Abschnitt in Google Maps"-Link, Auto-Scroll beim Ziehen
+
+- **Route, Abschnitt-Ansicht:** jede Abschnitts-Überschrift bekommt einen
+  "Abschnitt in Google Maps ↗"-Link (nur wenn der Abschnitt mindestens einen
+  Ort mit Koordinaten/Adresse enthält), der alle Orte dieses Abschnitts als
+  Route öffnet – reine Wiederverwendung der bestehenden
+  `fullRouteMapsUrl(places)` (bisher nur für die komplette Route genutzt),
+  jetzt zusätzlich pro Abschnitt aufgerufen. Neue `.place-group-heading-link`-
+  CSS-Klasse (kompakter Inline-Link statt vollem Button, rechtsbündig in der
+  Überschriftenzeile).
+- **Plan: Auto-Scroll beim Ziehen von Orten.** `js/drag-reorder.js` (das
+  gemeinsame Drag&Drop-Modul für Kategorie-/Abschnitt-/Datum-Modus in Plan
+  sowie die Touren-/Kategorien-/Abschnitts-Sortierung in den Einstellungen)
+  scrollt jetzt automatisch, wenn beim Ziehen der obere/untere Rand des
+  sichtbaren Bereichs erreicht wird (`.place-drag-handle` setzt
+  `touch-action: none`, wodurch normales Scrollen während des Ziehens sonst
+  komplett blockiert ist – Orte ließen sich dadurch nie in eine nicht
+  sichtbare Gruppe ziehen). Positionen der Zeilen werden dafür jetzt
+  dokument- statt viewport-relativ erfasst, damit sie beim Auto-Scrollen
+  gültig bleiben; die Ziel-Erkennung läuft zusätzlich bei jedem Scroll-Frame
+  neu (nicht nur bei Fingerbewegung), da sich das Ziel unter dem Finger auch
+  ohne eigene Bewegung ändert, sobald die Seite selbst weiterscrollt.
+
 ## Stand: Milestone 21 – Abreise-Default, Drag&Drop in der Datum-Ansicht, order-Kollision behoben
 
 - **Abreise wird beim Setzen der Ankunft automatisch vorbelegt** (falls noch

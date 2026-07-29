@@ -317,6 +317,17 @@ function renderSectionList(allOrderSorted, tripId) {
     heading.className = "place-group-heading";
     heading.style.setProperty("--category-color", group.color);
     heading.textContent = `${group.label} (${group.places.length})`;
+
+    const sectionRouteUrl = fullRouteMapsUrl(group.places);
+    if (sectionRouteUrl) {
+      const link = document.createElement("a");
+      link.className = "place-group-heading-link";
+      link.href = sectionRouteUrl;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Abschnitt in Google Maps ↗";
+      heading.appendChild(link);
+    }
     list.appendChild(heading);
 
     group.places.forEach((place) => {
