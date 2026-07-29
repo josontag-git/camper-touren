@@ -142,6 +142,21 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 20 – "Könnte interessant sein"-Einträge bearbeitbar
+
+- **Wunschlisten-Einträge** (Plan, "Könnte interessant sein") haben jetzt
+  einen Bearbeiten-Button (✎) und öffnen dabei dasselbe Formular wie die
+  normalen Plan-Einträge (`createFormRow()`/`onSave()`) – inklusive der
+  Ankunft/Abreise-Datumsfelder und der Notiz, die für Wunschlisten-Einträge
+  bisher nicht editierbar waren. `onSave()` übernimmt dabei weiterhin erst
+  alle vorhandenen Felder (siehe Milestone 18) und überschreibt nur die im
+  Formular bearbeiteten – der `status: "interested"` bleibt beim Speichern
+  also unangetastet erhalten.
+- Die Meta-Zeile in der Wunschlisten-Ansicht zeigt jetzt (wie bei normalen
+  Plan-Einträgen) Sterne-Bewertung, Datum/Adresse UND Notiz gemeinsam statt
+  nur eins von beidem – vorher verschwand z. B. das Datum, sobald ein Ort
+  eine Google-Bewertung hatte.
+
 ## Stand: Milestone 19b – Weiterer Rest-Datenverlust bei Orte-Schreibvorgängen behoben
 
 - **Trotz Milestone 17b ging live noch vereinzelt eine Abschnitts-/order-

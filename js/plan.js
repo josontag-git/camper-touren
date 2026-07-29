@@ -525,6 +525,11 @@ function renderInterestedList() {
   list.innerHTML = "";
 
   items.forEach((place) => {
+    if (place.id === editingPlaceId) {
+      list.appendChild(createFormRow(place));
+      return;
+    }
+
     const li = document.createElement("li");
     li.className = "trip-item";
     li.style.setProperty("--category-color", categoryInfo(place.category).color);
@@ -544,8 +549,16 @@ function renderInterestedList() {
     title.textContent = place.name || "(ohne Namen)";
     const meta = document.createElement("div");
     meta.className = "trip-meta";
-    meta.textContent = place.rating ? `${starRating(place.rating)} ${place.rating}` : formatMeta(place);
+    const ratingPrefix = place.rating ? `${starRating(place.rating)} ${place.rating} · ` : "";
+    const baseMeta = `${ratingPrefix}${formatMeta(place)}`;
+    meta.textContent = place.note ? `${baseMeta} · ${place.note}` : baseMeta;
     info.append(title, meta);
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "trip-icon-btn";
+    editBtn.textContent = "✎";
+    editBtn.setAttribute("aria-label", "Bearbeiten");
+    editBtn.addEventListener("click", () => { editingPlaceId = place.id; render(); });
 
     const moveBtn = document.createElement("button");
     moveBtn.className = "btn btn-ghost-dark";
@@ -558,7 +571,7 @@ function renderInterestedList() {
     removeBtn.setAttribute("aria-label", "Entfernen");
     removeBtn.addEventListener("click", () => onRemoveInterested(place));
 
-    li.append(...(thumb ? [thumb] : []), info, moveBtn, removeBtn);
+    li.append(...(thumb ? [thumb] : []), info, editBtn, moveBtn, removeBtn);
     list.appendChild(li);
   });
 }
