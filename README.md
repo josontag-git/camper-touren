@@ -142,6 +142,40 @@ verlässliche Hauptquelle.
   Mini-Ansicht im schmalen InfoWindow – es legt sich als vollflächiges
   Overlay über die ganze App, genau wie überall sonst positioniert.
 
+## Stand: Milestone 21 – Abreise-Default, Drag&Drop in der Datum-Ansicht, order-Kollision behoben
+
+- **Abreise wird beim Setzen der Ankunft automatisch vorbelegt** (falls noch
+  leer), damit der Datepicker beim Öffnen direkt dieses Datum zeigt statt
+  leer zu sein – bleibt danach frei änderbar. Betrifft `createFormRow()`
+  (manuelles Formular) und `buildResultDetailPanel()` (Suchergebnis-
+  Speichern-Panel), `js/plan.js`.
+- **Plan: Drag&Drop jetzt auch in der Datum-Ansicht.** Ein Ort lässt sich auf
+  eine Datums-Überschrift ODER eine Ort-Zeile eines anderen Tages ziehen –
+  dabei werden Ankunft UND Abreise automatisch auf diesen einen Tag gesetzt
+  (ein Drop ist ein konkreter Tag, kein Zeitraum). Neue `onDateDrop()`,
+  gleiches Cross-Gruppen-Drag-Muster wie beim Abschnitt-Modus (Milestone 17):
+  Datums-Überschriften sind selbst gültige Drop-Ziele (auch "Ohne Datum" –
+  löscht dabei das Datum – und der "Heute"-Marker). `writeChangedPlaces()`
+  (Milestone 17b/19b) prüft beim Schreiben jetzt zusätzlich `arrivalDate`/
+  `departureDate` mit, nicht mehr nur `order`/`sectionId`.
+- **Order-Kollision zwischen zwei Geräten behoben.** Neue Orte bekamen ihren
+  `order`-Wert bisher aus `places.length` – dem LOKALEN Stand des jeweiligen
+  Geräts. Legen zwei Geräte fast gleichzeitig je einen neuen Ort an, sehen
+  beide denselben lokalen Stand und vergeben denselben order-Wert (live
+  beobachtet: nach Ort-Hinzufügen auf einem zweiten Gerät gab es einen
+  frischen doppelten order-Wert, obwohl der Sync-Mechanismus selbst korrekt
+  funktioniert). Neue Orte bekommen jetzt `Date.now()` als order – kollidiert
+  praktisch nie, sortiert trotzdem ans Ende, und jede folgende Drag-Aktion
+  normalisiert ohnehin wieder auf lückenlose Ganzzahlen. Betrifft
+  `onSave()`/`saveSearchResult()` (`js/plan.js`) und `saveSuggestion()`
+  (`js/inspire.js`).
+- **Apps-Script-Bereitstellung live erneut verifiziert:** vollständiger
+  Schreib-Lese-Testlauf für einen Abschnitt (Anlegen → Lesen → Umbenennen →
+  Lesen, keine Dopplung → Löschen → Lesen, weg) direkt gegen das produktive
+  Sheet – alles korrekt. Die Bereitstellung ist also richtig eingerichtet;
+  die weiterhin beobachteten order-Konflikte kamen von der oben behobenen
+  Kollision, nicht von einem Deployment-Problem.
+
 ## Stand: Milestone 20 – "Könnte interessant sein"-Einträge bearbeitbar
 
 - **Wunschlisten-Einträge** (Plan, "Könnte interessant sein") haben jetzt

@@ -144,7 +144,9 @@ async function saveSuggestion(suggestion, place, status, btn) {
   const record = {
     id: existing?.placeId || crypto.randomUUID(),
     tripId: currentTripId,
-    order: places.length,
+    // Date.now() statt places.length -- siehe Kommentar in plan.js' onSave()
+    // zur Kollisionsgefahr bei zwei Geräten, die fast gleichzeitig einen Ort anlegen.
+    order: Date.now(),
     name: place.displayName?.text || suggestion.name,
     category: isPark4night ? (getCategories().find((c) => /camp/i.test(c.label))?.id || "") : "",
     arrivalDate: "",

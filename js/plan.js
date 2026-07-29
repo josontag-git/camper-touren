@@ -177,7 +177,7 @@ function createViewRow(place, metaOverride) {
   li.dataset.category = place.category || "";
   li.style.setProperty("--category-color", categoryInfo(place.category).color);
 
-  const draggable = viewMode === "category" || viewMode === "section";
+  const draggable = viewMode === "category" || viewMode === "section" || viewMode === "date";
 
   const info = document.createElement("div");
   info.className = "trip-info";
@@ -234,7 +234,7 @@ function createViewRow(place, metaOverride) {
         return [...listEl.querySelectorAll(".place-item")]
           .filter((el) => el !== draggedLi && el.dataset.category === category);
       }, onReorder);
-    } else {
+    } else if (viewMode === "section") {
       // Abschnitt-Modus: anders als bei Kategorie darf hier auch über
       // Gruppen hinweg gezogen werden (das ist der eigentliche Zweck --
       // Orte zwischen Abschnitten verschieben). Gruppen-Überschriften zählen
@@ -245,6 +245,15 @@ function createViewRow(place, metaOverride) {
         return [...listEl.querySelectorAll(".place-item, .place-group-heading[data-section-target]")]
           .filter((el) => el !== draggedLi);
       }, onSectionDrop);
+    } else {
+      // Datum-Modus: Ort auf eine Datums-Überschrift (oder eine Ort-Zeile
+      // eines anderen Tages) ziehen setzt Ankunft UND Abreise auf diesen
+      // einen Tag -- gleiches Cross-Gruppen-Muster wie beim Abschnitt-Modus.
+      attachDragHandle(handle, li, (draggedLi) => {
+        const listEl = draggedLi.parentElement;
+        return [...listEl.querySelectorAll(".place-item, .place-group-heading[data-date-target]")]
+          .filter((el) => el !== draggedLi);
+      }, onDateDrop);
     }
     li.append(handle, ...thumbPart, info, editBtn, delBtn);
   } else {
@@ -278,6 +287,12 @@ function createFormRow(place) {
 
   const { wrap: arrivalWrap, input: arrivalField } = createLabeledDateField("Ankunft", place?.arrivalDate);
   const { wrap: departureWrap, input: departureField } = createLabeledDateField("Abreise", place?.departureDate);
+  // Abreise ist noch leer -> beim Wählen der Ankunft direkt dasselbe Datum
+  // vorbelegen (häufigster Fall: eintägiger Stopp), lässt sich danach aber
+  // weiterhin frei ändern. Überschreibt keine bereits gesetzte Abreise.
+  arrivalField.addEventListener("change", () => {
+    if (!departureField.value) departureField.value = arrivalField.value;
+  });
 
   const addressField = document.createElement("input");
   addressField.type = "text";
@@ -353,7 +368,14 @@ async function onSave(existing, fields, saveBtn) {
     ...existing,
     id: existing?.id || crypto.randomUUID(),
     tripId: currentTripId,
-    order: existing?.order ?? places.length,
+    // Date.now() statt places.length: places.length ist der lokale Stand
+    // DIESES Geräts -- legen zwei Geräte fast gleichzeitig je einen neuen
+    // Ort an, können beide dieselbe Länge sehen und denselben order-Wert
+    // vergeben (live als doppelter order-Wert beobachtet, nachdem auf einem
+    // zweiten Gerät ein Ort hinzugefügt wurde). Ein Millisekunden-Zeitstempel
+    // kollidiert praktisch nie und sortiert neue Orte trotzdem ans Ende;
+    // jede spätere Drag-Sortierung normalisiert ohnehin wieder auf 0..n-1.
+    order: existing?.order ?? Date.now(),
     ...fields,
     placeId: existing?.placeId || "",
     createdAt: existing?.createdAt || new Date().toISOString(),
@@ -400,10 +422,19 @@ async function onDelete(place) {
 // senken das Risiko deutlich.
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Schnappschuss der Felder, die von onReorder()/onSectionDrop()/onDateDrop()
+// verändert werden können -- zentral hier, damit "before"-Snapshot und
+// Änderungs-Check nie auseinanderlaufen.
+function placeSnapshot(p) {
+  return { order: p.order, sectionId: p.sectionId || "", arrivalDate: p.arrivalDate || "", departureDate: p.departureDate || "" };
+}
+
 async function writeChangedPlaces(before, after, statusPrefix) {
   const toWrite = after.filter((p) => {
     const orig = before.get(p.id);
-    return !orig || orig.order !== p.order || orig.sectionId !== (p.sectionId || "");
+    if (!orig) return true;
+    const now = placeSnapshot(p);
+    return Object.keys(now).some((key) => orig[key] !== now[key]);
   });
   const failed = [];
   // Nacheinander statt parallel: Apps Script hat kein Locking auf
@@ -437,7 +468,7 @@ async function writeChangedPlaces(before, after, statusPrefix) {
 
 async function onReorder(sourceId, targetId) {
   const ordered = sortedPlaces();
-  const before = new Map(ordered.map((p) => [p.id, { order: p.order, sectionId: p.sectionId || "" }]));
+  const before = new Map(ordered.map((p) => [p.id, placeSnapshot(p)]));
   const fromIndex = ordered.findIndex((p) => p.id === sourceId);
   const toIndex = ordered.findIndex((p) => p.id === targetId);
   if (fromIndex === -1 || toIndex === -1) return;
@@ -456,7 +487,7 @@ async function onReorder(sourceId, targetId) {
 // eingefügt (wie onReorder(), nur zusätzlich mit Abschnitts-Wechsel).
 async function onSectionDrop(sourceId, targetId) {
   const ordered = sortedPlaces();
-  const before = new Map(ordered.map((p) => [p.id, { order: p.order, sectionId: p.sectionId || "" }]));
+  const before = new Map(ordered.map((p) => [p.id, placeSnapshot(p)]));
   const fromIndex = ordered.findIndex((p) => p.id === sourceId);
   if (fromIndex === -1) return;
   const [moved] = ordered.splice(fromIndex, 1);
@@ -468,6 +499,39 @@ async function onSectionDrop(sourceId, targetId) {
     const toIndex = ordered.findIndex((p) => p.id === targetId);
     if (toIndex === -1) { ordered.splice(fromIndex, 0, moved); return; }
     moved.sectionId = ordered[toIndex].sectionId || "";
+    ordered.splice(toIndex, 0, moved);
+  }
+
+  const reindexed = ordered.map((p, i) => ({ ...p, order: i }));
+  setPlaces(reindexed);
+  render();
+  await writeChangedPlaces(before, reindexed, "Fehler beim Verschieben");
+}
+
+// Ziel ist eine Datums-Überschrift ("date:"+yyyy-MM-dd, leer für "Ohne
+// Datum") -> Ort bekommt Ankunft UND Abreise auf dieses Datum gesetzt
+// (Drop = ein konkreter Tag, kein Zeitraum) und wandert ans Ende der
+// Gesamtreihenfolge. Ziel ist eine Ort-Zeile -> Ort übernimmt deren Datum
+// UND wird an deren Position eingefügt (wie onSectionDrop(), nur mit
+// Datums- statt Abschnitts-Wechsel).
+async function onDateDrop(sourceId, targetId) {
+  const ordered = sortedPlaces();
+  const before = new Map(ordered.map((p) => [p.id, placeSnapshot(p)]));
+  const fromIndex = ordered.findIndex((p) => p.id === sourceId);
+  if (fromIndex === -1) return;
+  const [moved] = ordered.splice(fromIndex, 1);
+
+  if (targetId.startsWith("date:")) {
+    const date = targetId.slice("date:".length);
+    moved.arrivalDate = date;
+    moved.departureDate = date;
+    ordered.push(moved);
+  } else {
+    const toIndex = ordered.findIndex((p) => p.id === targetId);
+    if (toIndex === -1) { ordered.splice(fromIndex, 0, moved); return; }
+    const date = ordered[toIndex].arrivalDate || "";
+    moved.arrivalDate = date;
+    moved.departureDate = date;
     ordered.splice(toIndex, 0, moved);
   }
 
@@ -582,13 +646,17 @@ function renderInterestedList() {
 // angelegten, leeren Abschnitt ziehen). sectionMode: Überschriften bekommen
 // zusätzlich dataset.id/data-section-target, damit sie in createViewRow()'s
 // Abschnitt-Drag als Drop-Ziel erkannt werden.
-function renderGroups(groups, list, { allowEmpty = false, sectionMode = false } = {}) {
+function renderGroups(groups, list, { allowEmpty = false, sectionMode = false, dateMode = false } = {}) {
   let visibleCount = 0;
   groups.forEach((group) => {
     if (group.isToday) {
       const heading = document.createElement("li");
       heading.className = "place-group-heading place-group-heading--today";
       heading.textContent = group.label;
+      if (dateMode) {
+        heading.dataset.id = `date:${new Date().toISOString().slice(0, 10)}`;
+        heading.dataset.dateTarget = "true";
+      }
       list.appendChild(heading);
       return;
     }
@@ -605,6 +673,10 @@ function renderGroups(groups, list, { allowEmpty = false, sectionMode = false } 
     if (sectionMode) {
       heading.dataset.id = `section:${group.id}`;
       heading.dataset.sectionTarget = "true";
+    }
+    if (dateMode) {
+      heading.dataset.id = `date:${group.id === "__none__" ? "" : group.id}`;
+      heading.dataset.dateTarget = "true";
     }
     list.appendChild(heading);
 
@@ -671,7 +743,9 @@ async function saveSearchResult(place, index, dates, saveBtn, status = "", origi
   const record = {
     id: crypto.randomUUID(),
     tripId: currentTripId,
-    order: places.length,
+    // Date.now() statt places.length -- siehe Kommentar in onSave() zur
+    // Kollisionsgefahr bei zwei Geräten, die fast gleichzeitig einen Ort anlegen.
+    order: Date.now(),
     name: place.displayName?.text || "",
     category: selectedCategoryByResult[index]
       || (place.source === "park4night" ? (getCategories().find((c) => /camp/i.test(c.label))?.id || "") : ""),
@@ -782,6 +856,9 @@ function buildResultDetailPanel(place, index) {
   dateWrap.className = "trip-edit-fields";
   const { wrap: arrivalWrap, input: arrivalField } = createLabeledDateField("Ankunft");
   const { wrap: departureWrap, input: departureField } = createLabeledDateField("Abreise");
+  arrivalField.addEventListener("change", () => {
+    if (!departureField.value) departureField.value = arrivalField.value;
+  });
   dateWrap.append(arrivalWrap, departureWrap);
   panel.appendChild(dateWrap);
 
@@ -1229,7 +1306,7 @@ function render() {
   if (viewMode === "category") {
     visibleCount = renderGroups(groupedByCategory(), list);
   } else if (viewMode === "date") {
-    visibleCount = renderGroups(showTimeline ? withTodayMarker(groupedByDate()) : groupedByDate(), list, { allowEmpty: true });
+    visibleCount = renderGroups(showTimeline ? withTodayMarker(groupedByDate()) : groupedByDate(), list, { allowEmpty: true, dateMode: true });
   } else if (viewMode === "distance") {
     visibleCount = renderDistanceMode(list);
   } else if (viewMode === "section") {
